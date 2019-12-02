@@ -16,7 +16,50 @@
         </div>
 
         <div v-else-if="appState === 'login-done'" class="row send-mes">
-            <p>Login success!</p>
+            <div class="col-4">
+                <h2>List groups</h2>
+                <ul class="list-group">
+                    <li class="list-group-item chat-item"
+                        v-for="chat in listChats"
+                        v-on:click="selectGroup(chat.id)" v-bind:class="{active: addGroupId === chat.id}">
+                        {{chat.id}} - {{chat.title}}
+                    </li>
+                </ul>
+            </div>
+            <div class="col-4">
+                <h2>Add user to group</h2>
+                <div class="form-group">
+                    <label for="add-user-id">User ID</label>
+                    <input v-model="addUserId" type="number"  class="form-control" id="add-user-id" placeholder="User ID...">
+                </div>
+                <div class="form-group">
+                    <label for="add-user-id">Chat group ID</label>
+                    <input v-model="addGroupId" type="number"  class="form-control" id="add-group-id" placeholder="Enter group id...">
+                </div>
+
+                <button class="btn btn-primary mt-2" v-on:click="addGroupMember">Add</button>
+
+                <div class="row mt-5">
+                    <p v-for="result in addResults">Thêm {{ result }}</p>
+                </div>
+            </div>
+            <div class="col-4">
+                <h2>Search user by id</h2>
+                <div class="form-group">
+                    <label for="user-id">User ID</label>
+                    <input v-model="userId" type="number"  class="form-control" id="user-id" placeholder="User ID...">
+                </div>
+                <button class="btn btn-primary mt-2" v-on:click="getUserInfo">Get info</button>
+
+                <div v-if="userInfo.hasOwnProperty('id')" class="row user-info mt-5">
+                    <p v-if="userInfo.hasOwnProperty('username')">
+                        <b>User name: </b>{{userInfo.username}}
+                    </p>
+                    <p v-if="userInfo.hasOwnProperty('first_name')">
+                        <b>Full name: </b>{{userInfo.first_name + ' ' + userInfo.last_name}}
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -46,7 +89,12 @@
                 appState: 'init',
                 phoneNumber: '',
                 codeActive: '',
-                chatList: []
+                listChats: [],
+                userId: 968902212,
+                userInfo: {},
+                addUserId: user,
+                addGroupId: group,
+                addResults: []
             }
         },
         created() {
@@ -146,14 +194,61 @@
                     'limit': 20
                 }).then(result => {
                     console.log('send getChats result', result);
+                    
+                    for (let i = 0; i < result.chat_ids.length; i++) {
+
+                        if (result.chat_ids[i] < -1000000000) {
+                            this.getChat(result.chat_ids[i]);
+                        }
+                    } 
                 }).catch(error => {
                     console.error('send getChats error', error);
                 });
+            },
+            getUserInfo() {
+                tdClient.send({
+                    '@type': 'getUser',
+                    user_id: this.userId
+                }).then(result => {
+                    console.log('send getUserInfo result', result);
+                    this.userInfo = result;
+                }).catch(error => {
+                    console.error('send getUserInfo error', error);
+                });
+            },
+            addGroupMember() {
+                tdClient.send({
+                    '@type': 'addChatMember',
+                    chat_id: this.addGroupId,
+                    user_id: this.addUserId,
+                    forward_limit: 5
+                }).then(result => {
+                    console.log('send getUserInfo result', result);
+                    this.addResults.push(result['@type']);
+                }).catch(error => {
+                    console.error('send getUserInfo error', error);
+                });
+            },
+            getChat(chatId) {
+                tdClient.send({
+                    '@type': 'getChat',
+                    chat_id: chatId
+                }).then(result => {
+                    console.log('send getChat result', result);
+                    this.listChats.push(result);
+                }).catch(error => {
+                    console.error('send getChat error', error);
+                });
+            },
+            selectGroup(chatId) {
+                this.addGroupId = chatId;
             }
         }
     }
 </script>
 
 <style scoped>
-
+    .chat-item {
+        cursor: pointer;
+    }
 </style>
