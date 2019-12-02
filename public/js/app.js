@@ -1859,39 +1859,148 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
 
+var apiId = '1096535';
+var apiHash = '3580aaad6483792444aa67b026b57416';
+var group = -1001297053658;
+var user = 968902212;
+var options = {
+  logVerbosityLevel: 1,
+  jsLogVerbosityLevel: 3,
+  mode: 'asmjs',
+  prefix: 'tdlib',
+  readOnly: false,
+  isBackground: false,
+  useDatabase: false
+};
+var tdClient;
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: "TelegramComponent",
   data: function data() {
     return {
-      results: [],
-      userId: 0,
-      groupId: 0
+      appState: 'init',
+      phoneNumber: '',
+      codeActive: '',
+      chatList: []
     };
   },
   created: function created() {
-    var options = {
-      logVerbosityLevel: 1,
-      jsLogVerbosityLevel: 3,
-      mode: 'asmjs',
-      // 'wasm-streaming'/'wasm'/'asmjs'
-      prefix: 'tdlib',
-      readOnly: false,
-      isBackground: false,
-      useDatabase: false
-    };
-    var tdClient = new tdweb__WEBPACK_IMPORTED_MODULE_0___default.a(options);
-
-    tdClient.onUpdate = function (update) {
-      console.log(update);
-    };
-
-    console.log(tdClient);
+    this.TdClientInit();
   },
   methods: {
-    addMember: function addMember() {
-      ///tdweb.send()
-      this.results.push('Group id: ' + this.groupId + ' | User id: ' + this.userId);
+    TdClientInit: function TdClientInit() {
+      var _this = this;
+
+      tdClient = new tdweb__WEBPACK_IMPORTED_MODULE_0___default.a(options);
+
+      tdClient.onUpdate = function (update) {
+        console.log('receive update', update);
+
+        switch (update['@type']) {
+          case 'updateAuthorizationState':
+            {
+              switch (update.authorization_state['@type']) {
+                case 'authorizationStateLoggingOut':
+                  break;
+
+                case 'authorizationStateWaitTdlibParameters':
+                  _this.sendParamters();
+
+                  break;
+
+                case 'authorizationStateWaitEncryptionKey':
+                  tdClient.send({
+                    '@type': 'checkDatabaseEncryptionKey'
+                  });
+                  break;
+
+                case 'authorizationStateWaitPhoneNumber':
+                  {
+                    _this.appState = 'login-phone';
+                    break;
+                  }
+
+                case 'authorizationStateWaitCode':
+                  _this.appState = 'login-code';
+                  break;
+
+                case 'authorizationStateWaitPassword':
+                  break;
+
+                case 'authorizationStateReady':
+                  _this.appState = 'login-done';
+
+                  _this.getChats();
+
+                  break;
+
+                case 'authorizationStateClosing':
+                  break;
+
+                case 'authorizationStateClosed':
+                  break;
+
+                default:
+                  break;
+              }
+            }
+        }
+      };
+    },
+    sendPhone: function sendPhone() {
+      tdClient.send({
+        '@type': 'setAuthenticationPhoneNumber',
+        phone_number: this.phoneNumber
+      }).then(function (result) {
+        console.log('send phone result', result);
+      })["catch"](function (error) {
+        console.error('send phone error', error);
+      });
+    },
+    sendCode: function sendCode() {
+      tdClient.send({
+        '@type': 'checkAuthenticationCode',
+        code: this.codeActive
+      }).then(function (result) {
+        console.log('send code result', result);
+      })["catch"](function (error) {
+        console.error('send code error', error);
+      });
+    },
+    sendMessage: function sendMessage() {},
+    sendParamters: function sendParamters() {
+      tdClient.send({
+        '@type': 'setTdlibParameters',
+        parameters: {
+          '@type': 'tdParameters',
+          api_id: apiId,
+          api_hash: apiHash,
+          system_language_code: 'en',
+          system_version: 'Windows 10',
+          application_version: '1.0',
+          device_model: 'Chrome'
+        }
+      }).then(function (result) {
+        console.log('send result', result);
+      })["catch"](function (error) {
+        console.error('send error', error);
+      });
+    },
+    getChats: function getChats() {
+      tdClient.send({
+        '@type': 'getChats',
+        offset_order: '9223372036854775807',
+        offset_chat_id: '0',
+        'limit': 20
+      }).then(function (result) {
+        console.log('send getChats result', result);
+      })["catch"](function (error) {
+        console.error('send getChats error', error);
+      });
     }
   }
 });
@@ -37432,7 +37541,7 @@ module.exports = _slicedToArray;
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = function() {
-  return new Worker(__webpack_require__.p + "2380cfa0e562e148fa50.worker.js");
+  return new Worker(__webpack_require__.p + "js/2380cfa0e562e148fa50.worker.js");
 };
 
 /***/ }),
@@ -40484,6 +40593,7 @@ function () {
 /******/ ]);
 });
 
+
 /***/ }),
 
 /***/ "./node_modules/timers-browserify/main.js":
@@ -40576,76 +40686,82 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c("div", { staticClass: "row mt-5" }, [
-    _c("div", { staticClass: "col-12" }, [
-      _c("input", {
-        directives: [
-          {
-            name: "model",
-            rawName: "v-model",
-            value: _vm.groupId,
-            expression: "groupId"
-          }
-        ],
-        attrs: { type: "text", name: "group_id", placeholder: "Group id..." },
-        domProps: { value: _vm.groupId },
-        on: {
-          input: function($event) {
-            if ($event.target.composing) {
-              return
-            }
-            _vm.groupId = $event.target.value
-          }
-        }
-      })
-    ]),
-    _vm._v(" "),
-    _c("div", { staticClass: "col-12 mt-2" }, [
-      _c("input", {
-        directives: [
-          {
-            name: "model",
-            rawName: "v-model",
-            value: _vm.userId,
-            expression: "userId"
-          }
-        ],
-        attrs: { type: "text", name: "group_id", placeholder: "Group id..." },
-        domProps: { value: _vm.userId },
-        on: {
-          input: function($event) {
-            if ($event.target.composing) {
-              return
-            }
-            _vm.userId = $event.target.value
-          }
-        }
-      })
-    ]),
-    _vm._v(" "),
-    _c("div", { staticClass: "col-12 mt-2" }, [
-      _c(
-        "button",
-        {
-          on: {
-            click: function($event) {
-              return _vm.addMember()
-            }
-          }
-        },
-        [_vm._v("Thêm")]
-      )
-    ]),
-    _vm._v(" "),
-    _c("div", { staticClass: "col-12 mt-4" }, [
-      _c(
-        "ul",
-        _vm._l(_vm.results, function(item) {
-          return _c("li", [_vm._v(_vm._s(item))])
-        }),
-        0
-      )
-    ])
+  return _c("div", { staticClass: "wrap-content mt-5" }, [
+    _vm.appState === "login-phone"
+      ? _c("div", { staticClass: "row login-phone" }, [
+          _c("div", { staticClass: "col-10" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.phoneNumber,
+                  expression: "phoneNumber"
+                }
+              ],
+              staticClass: "input-group",
+              attrs: { type: "text", placeholder: "Phone number..." },
+              domProps: { value: _vm.phoneNumber },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.phoneNumber = $event.target.value
+                }
+              }
+            }),
+            _vm._v(" "),
+            _c(
+              "button",
+              {
+                staticClass: "btn btn-primary mt-2",
+                on: { click: _vm.sendPhone }
+              },
+              [_vm._v("Login")]
+            )
+          ])
+        ])
+      : _vm.appState === "login-code"
+      ? _c("div", { staticClass: "row login-code" }, [
+          _c("div", { staticClass: "col-10" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.codeActive,
+                  expression: "codeActive"
+                }
+              ],
+              staticClass: "input-group",
+              attrs: { type: "text", placeholder: "Code number..." },
+              domProps: { value: _vm.codeActive },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.codeActive = $event.target.value
+                }
+              }
+            }),
+            _vm._v(" "),
+            _c(
+              "button",
+              {
+                staticClass: "btn btn-primary mt-2",
+                on: { click: _vm.sendCode }
+              },
+              [_vm._v("Login")]
+            )
+          ])
+        ])
+      : _vm.appState === "login-done"
+      ? _c("div", { staticClass: "row send-mes" }, [
+          _c("p", [_vm._v("Login success!")])
+        ])
+      : _vm._e()
   ])
 }
 var staticRenderFns = []

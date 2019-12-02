@@ -18,9 +18,3 @@
 <script type="text/javascript" src="{{ asset('js/app.js') }}"></script>
 </body>
 </html>
-<script>
-    import TelegramComponent from "../js/components/TelegramComponent";
-    export default {
-        components: {TelegramComponent}
-    }
-</script>
