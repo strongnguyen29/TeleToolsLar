@@ -19,14 +19,19 @@
             <div class="col-4">
                 <h2>List groups</h2>
                 <ul class="list-group">
-                    <li class="list-group-item chat-item"
+                    <li class="list-group-item chat-item d-flex justify-content-between align-items-center"
                         v-for="chat in listChats"
-                        v-on:click="selectGroup(chat.id, chat.type.supergroup_id)" v-bind:class="{active: addGroupId === chat.id}">
+                        v-on:click="selectGroup(chat.id)"
+                        v-bind:class="{active: addGroupId === chat.id}">
                         {{chat.id}} - {{chat.title}}
+                        <span class="badge badge-primary badge-pill py-2"
+                              v-on:click="getChatMembers(chat.type.supergroup_id)">
+                            Get members
+                        </span>
                     </li>
                 </ul>
             </div>
-            <div class="col-4">
+            <div class="col-4 col-input">
                 <h2>Add user to group</h2>
                 <div class="form-group">
                     <label for="add-user-id">User ID</label>
@@ -63,7 +68,7 @@
             <div class="col-4">
                 <h2>Group users</h2>
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item" v-for="member in listMembers">
+                    <li class="list-group-item" v-for="member in listMembers" v-on:click="selectUser(member.id)">
                         <p class="text-truncate">
                             {{member.id}} - {{member.first_name}} {{member.last_name}}
                         </p>
@@ -280,9 +285,11 @@
                     this.listMembers = [];
                 });
             },
-            selectGroup(chatId, groupId) {
+            selectGroup(chatId) {
                 this.addGroupId = chatId;
-                this.getChatMembers(groupId);
+            },
+            selectUser(userId) {
+                this.addUserId = userId;
             }
         }
     }
@@ -295,5 +302,12 @@
     .list-group {
         max-height: 80vh;
         overflow: auto;
+    }
+    .col-input {
+        background: #eeeeee;
+    }
+    .badge {
+        font-size: 0.875rem;
+        font-weight: normal;
     }
 </style>

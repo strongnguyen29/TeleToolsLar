@@ -1916,6 +1916,11 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
 
 var apiId = '1096535';
 var apiHash = '3580aaad6483792444aa67b026b57416';
@@ -2144,9 +2149,11 @@ var tdClient;
         _this6.listMembers = [];
       });
     },
-    selectGroup: function selectGroup(chatId, groupId) {
+    selectGroup: function selectGroup(chatId) {
       this.addGroupId = chatId;
-      this.getChatMembers(groupId);
+    },
+    selectUser: function selectUser(userId) {
+      this.addUserId = userId;
     }
   }
 });
@@ -6696,7 +6703,7 @@ exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loa
 
 
 // module
-exports.push([module.i, "\n.chat-item[data-v-0151d421] {\n    cursor: pointer;\n}\n.list-group[data-v-0151d421] {\n    max-height: 80vh;\n    overflow: auto;\n}\n", ""]);
+exports.push([module.i, "\n.chat-item[data-v-0151d421] {\n    cursor: pointer;\n}\n.list-group[data-v-0151d421] {\n    max-height: 80vh;\n    overflow: auto;\n}\n.col-input[data-v-0151d421] {\n    background: #eeeeee;\n}\n.badge[data-v-0151d421] {\n    font-size: 0.875rem;\n    font-weight: normal;\n}\n", ""]);
 
 // exports
 
@@ -41560,11 +41567,12 @@ var render = function() {
                 return _c(
                   "li",
                   {
-                    staticClass: "list-group-item chat-item",
+                    staticClass:
+                      "list-group-item chat-item d-flex justify-content-between align-items-center",
                     class: { active: _vm.addGroupId === chat.id },
                     on: {
                       click: function($event) {
-                        return _vm.selectGroup(chat.id, chat.type.supergroup_id)
+                        return _vm.selectGroup(chat.id)
                       }
                     }
                   },
@@ -41574,7 +41582,23 @@ var render = function() {
                         _vm._s(chat.id) +
                         " - " +
                         _vm._s(chat.title) +
-                        "\n                "
+                        "\n                    "
+                    ),
+                    _c(
+                      "span",
+                      {
+                        staticClass: "badge badge-primary badge-pill py-2",
+                        on: {
+                          click: function($event) {
+                            return _vm.getChatMembers(chat.type.supergroup_id)
+                          }
+                        }
+                      },
+                      [
+                        _vm._v(
+                          "\n                        Get members\n                    "
+                        )
+                      ]
                     )
                   ]
                 )
@@ -41583,7 +41607,7 @@ var render = function() {
             )
           ]),
           _vm._v(" "),
-          _c("div", { staticClass: "col-4" }, [
+          _c("div", { staticClass: "col-4 col-input" }, [
             _c("h2", [_vm._v("Add user to group")]),
             _vm._v(" "),
             _c("div", { staticClass: "form-group" }, [
@@ -41747,19 +41771,30 @@ var render = function() {
               "ul",
               { staticClass: "list-group list-group-flush" },
               _vm._l(_vm.listMembers, function(member) {
-                return _c("li", { staticClass: "list-group-item" }, [
-                  _c("p", { staticClass: "text-truncate" }, [
-                    _vm._v(
-                      "\n                        " +
-                        _vm._s(member.id) +
-                        " - " +
-                        _vm._s(member.first_name) +
-                        " " +
-                        _vm._s(member.last_name) +
-                        "\n                    "
-                    )
-                  ])
-                ])
+                return _c(
+                  "li",
+                  {
+                    staticClass: "list-group-item",
+                    on: {
+                      click: function($event) {
+                        return _vm.selectUser(member.id)
+                      }
+                    }
+                  },
+                  [
+                    _c("p", { staticClass: "text-truncate" }, [
+                      _vm._v(
+                        "\n                        " +
+                          _vm._s(member.id) +
+                          " - " +
+                          _vm._s(member.first_name) +
+                          " " +
+                          _vm._s(member.last_name) +
+                          "\n                    "
+                      )
+                    ])
+                  ]
+                )
               }),
               0
             )

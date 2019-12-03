@@ -10,7 +10,7 @@
     </style>
 </head>
 <body>
-<div id="app" class="container">
+<div id="app" class="container-fluid">
 
     <telegram-component></telegram-component>
 
