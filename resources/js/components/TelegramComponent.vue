@@ -21,7 +21,7 @@
                 <ul class="list-group">
                     <li class="list-group-item chat-item"
                         v-for="chat in listChats"
-                        v-on:click="selectGroup(chat.id)" v-bind:class="{active: addGroupId === chat.id}">
+                        v-on:click="selectGroup(chat.id, chat.type.supergroup_id)" v-bind:class="{active: addGroupId === chat.id}">
                         {{chat.id}} - {{chat.title}}
                     </li>
                 </ul>
@@ -42,9 +42,8 @@
                 <div class="row mt-5">
                     <p v-for="result in addResults">Thêm {{ result }}</p>
                 </div>
-            </div>
-            <div class="col-4">
-                <h2>Search user by id</h2>
+
+                <h2 class="pt-5 border-top">Search user by id</h2>
                 <div class="form-group">
                     <label for="user-id">User ID</label>
                     <input v-model="userId" type="number"  class="form-control" id="user-id" placeholder="User ID...">
@@ -55,10 +54,21 @@
                     <p v-if="userInfo.hasOwnProperty('username')">
                         <b>User name: </b>{{userInfo.username}}
                     </p>
+                    <br/>
                     <p v-if="userInfo.hasOwnProperty('first_name')">
                         <b>Full name: </b>{{userInfo.first_name + ' ' + userInfo.last_name}}
                     </p>
                 </div>
+            </div>
+            <div class="col-4">
+                <h2>Group users</h2>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item" v-for="member in listMembers">
+                        <p class="text-truncate">
+                            {{member.id}} - {{member.first_name}} {{member.last_name}}
+                        </p>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
@@ -90,6 +100,7 @@
                 phoneNumber: '',
                 codeActive: '',
                 listChats: [],
+                listMembers: [],
                 userId: 968902212,
                 userInfo: {},
                 addUserId: user,
@@ -240,8 +251,38 @@
                     console.error('send getChat error', error);
                 });
             },
-            selectGroup(chatId) {
+            getChatMembers(groupId) {
+                this.listMembers = [];
+                tdClient.send({
+                    '@type': 'getSupergroupMembers',
+                    supergroup_id: groupId,
+                    offset: 0,
+                    limit:200
+                }).then(result => {
+                    console.log('send getChatMembers result', result);
+                    if (result.hasOwnProperty('members')) {
+
+                        for (let j = 0; j < result.members.length; j++) {
+                            let mem = result.members[j];
+                            tdClient.send({
+                                '@type': 'getUser',
+                                user_id: mem.user_id
+                            }).then(result => {
+                                console.log('send getUserInfo result', result);
+                                this.listMembers.push(result)
+                            }).catch(error => {
+                                console.error('send getUserInfo error', error);
+                            });
+                        }
+                    }
+                }).catch(error => {
+                    console.error('send getChatMembers error', error);
+                    this.listMembers = [];
+                });
+            },
+            selectGroup(chatId, groupId) {
                 this.addGroupId = chatId;
+                this.getChatMembers(groupId);
             }
         }
     }
@@ -250,5 +291,9 @@
 <style scoped>
     .chat-item {
         cursor: pointer;
+    }
+    .list-group {
+        max-height: 80vh;
+        overflow: auto;
     }
 </style>

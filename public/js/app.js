@@ -1906,6 +1906,16 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 var apiId = '1096535';
 var apiHash = '3580aaad6483792444aa67b026b57416';
@@ -1929,6 +1939,7 @@ var tdClient;
       phoneNumber: '',
       codeActive: '',
       listChats: [],
+      listMembers: [],
       userId: 968902212,
       userInfo: {},
       addUserId: user,
@@ -2101,8 +2112,41 @@ var tdClient;
         console.error('send getChat error', error);
       });
     },
-    selectGroup: function selectGroup(chatId) {
+    getChatMembers: function getChatMembers(groupId) {
+      var _this6 = this;
+
+      this.listMembers = [];
+      tdClient.send({
+        '@type': 'getSupergroupMembers',
+        supergroup_id: groupId,
+        offset: 0,
+        limit: 200
+      }).then(function (result) {
+        console.log('send getChatMembers result', result);
+
+        if (result.hasOwnProperty('members')) {
+          for (var j = 0; j < result.members.length; j++) {
+            var mem = result.members[j];
+            tdClient.send({
+              '@type': 'getUser',
+              user_id: mem.user_id
+            }).then(function (result) {
+              console.log('send getUserInfo result', result);
+
+              _this6.listMembers.push(result);
+            })["catch"](function (error) {
+              console.error('send getUserInfo error', error);
+            });
+          }
+        }
+      })["catch"](function (error) {
+        console.error('send getChatMembers error', error);
+        _this6.listMembers = [];
+      });
+    },
+    selectGroup: function selectGroup(chatId, groupId) {
       this.addGroupId = chatId;
+      this.getChatMembers(groupId);
     }
   }
 });
@@ -6652,7 +6696,7 @@ exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loa
 
 
 // module
-exports.push([module.i, "\n.chat-item[data-v-0151d421] {\n    cursor: pointer;\n}\n", ""]);
+exports.push([module.i, "\n.chat-item[data-v-0151d421] {\n    cursor: pointer;\n}\n.list-group[data-v-0151d421] {\n    max-height: 80vh;\n    overflow: auto;\n}\n", ""]);
 
 // exports
 
@@ -41340,6 +41384,7 @@ function () {
 /******/ ]);
 });
 
+
 /***/ }),
 
 /***/ "./node_modules/timers-browserify/main.js":
@@ -41519,7 +41564,7 @@ var render = function() {
                     class: { active: _vm.addGroupId === chat.id },
                     on: {
                       click: function($event) {
-                        return _vm.selectGroup(chat.id)
+                        return _vm.selectGroup(chat.id, chat.type.supergroup_id)
                       }
                     }
                   },
@@ -41621,11 +41666,11 @@ var render = function() {
                 return _c("p", [_vm._v("Thêm " + _vm._s(result))])
               }),
               0
-            )
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "col-4" }, [
-            _c("h2", [_vm._v("Search user by id")]),
+            ),
+            _vm._v(" "),
+            _c("h2", { staticClass: "pt-5 border-top" }, [
+              _vm._v("Search user by id")
+            ]),
             _vm._v(" "),
             _c("div", { staticClass: "form-group" }, [
               _c("label", { attrs: { for: "user-id" } }, [_vm._v("User ID")]),
@@ -41677,6 +41722,8 @@ var render = function() {
                       ])
                     : _vm._e(),
                   _vm._v(" "),
+                  _c("br"),
+                  _vm._v(" "),
                   _vm.userInfo.hasOwnProperty("first_name")
                     ? _c("p", [
                         _c("b", [_vm._v("Full name: ")]),
@@ -41691,6 +41738,31 @@ var render = function() {
                     : _vm._e()
                 ])
               : _vm._e()
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "col-4" }, [
+            _c("h2", [_vm._v("Group users")]),
+            _vm._v(" "),
+            _c(
+              "ul",
+              { staticClass: "list-group list-group-flush" },
+              _vm._l(_vm.listMembers, function(member) {
+                return _c("li", { staticClass: "list-group-item" }, [
+                  _c("p", { staticClass: "text-truncate" }, [
+                    _vm._v(
+                      "\n                        " +
+                        _vm._s(member.id) +
+                        " - " +
+                        _vm._s(member.first_name) +
+                        " " +
+                        _vm._s(member.last_name) +
+                        "\n                    "
+                    )
+                  ])
+                ])
+              }),
+              0
+            )
           ])
         ])
       : _vm._e()
