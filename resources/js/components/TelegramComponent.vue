@@ -230,6 +230,7 @@
                     this.userInfo = result;
                 }).catch(error => {
                     console.error('send getUserInfo error', error);
+                    alert("Add user info failed!");
                 });
             },
             addGroupMember() {
@@ -243,6 +244,7 @@
                     this.addResults.push(result['@type']);
                 }).catch(error => {
                     console.error('send getUserInfo error', error);
+                    alert("Add member to group failed!");
                 });
             },
             getChat(chatId) {
@@ -283,6 +285,7 @@
                 }).catch(error => {
                     console.error('send getChatMembers error', error);
                     this.listMembers = [];
+                    alert('Get group member failed!')
                 });
             },
             selectGroup(chatId) {
