@@ -69,7 +69,7 @@
                 <h2>Group users</h2>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item" v-for="member in listMembers" v-on:click="selectUser(member.id)">
-                        <p class="text-truncate">
+                        <p class="text-truncate p-0">
                             {{member.id}} - {{member.first_name}} {{member.last_name}}
                         </p>
                     </li>

@@ -2085,6 +2085,7 @@ var tdClient;
         _this3.userInfo = result;
       })["catch"](function (error) {
         console.error('send getUserInfo error', error);
+        alert("Add user info failed!");
       });
     },
     addGroupMember: function addGroupMember() {
@@ -2101,6 +2102,7 @@ var tdClient;
         _this4.addResults.push(result['@type']);
       })["catch"](function (error) {
         console.error('send getUserInfo error', error);
+        alert("Add member to group failed!");
       });
     },
     getChat: function getChat(chatId) {
@@ -2147,6 +2149,7 @@ var tdClient;
       })["catch"](function (error) {
         console.error('send getChatMembers error', error);
         _this6.listMembers = [];
+        alert('Get group member failed!');
       });
     },
     selectGroup: function selectGroup(chatId) {
