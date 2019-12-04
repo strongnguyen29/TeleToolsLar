@@ -17,7 +17,6 @@ Route::get('/welcome', function () {
     return view('welcome');
 });
 
-Route::get('/', function () {
-
-    return view('telegram_lib');
-});
+Route::get('/{any}', function () {
+    return view('index');
+})->where('any', '.*');
