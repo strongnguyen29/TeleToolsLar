@@ -39,6 +39,6 @@
 
 <style scoped>
     .main-content {
-        margin-top: 59px;
+        margin-top: 72px;
     }
 </style>
