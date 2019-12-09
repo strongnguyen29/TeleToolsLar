@@ -96,6 +96,11 @@ export function getBrowser() {
     return browser_name;
 }
 
+/**
+ *
+ * @param phoneNumber
+ * @returns {boolean}
+ */
 export function isValidPhoneNumber(phoneNumber) {
     if (!phoneNumber) return false;
 

@@ -156,6 +156,14 @@
                                 default:
                                     break;
                             }
+
+                            break;
+                        }
+
+                        case 'updateOption': {
+                            if (update.name === 'my_id') {
+
+                            }
                         }
                     }
                 };
@@ -179,9 +187,6 @@
                 }).catch(error => {
                     console.error('send code error', error);
                 });
-            },
-            sendMessage() {
-
             },
             sendParamters() {
 

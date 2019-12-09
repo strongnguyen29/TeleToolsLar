@@ -1,8 +1,9 @@
 <template>
     <div>
         <div class="row">
-            <div class="col-12">
+            <div class="col-12 d-inline-flex">
                 <h3>List account</h3>
+                <button type="button" class="btn btn-sm btn-primary ml-4" v-on:click="gotoLogin">Thêm tài khoản</button>
             </div>
         </div>
         <div class="row mt-3">
@@ -18,11 +19,11 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr v-for="i in 20">
-                        <th>{{ i }}</th>
-                        <td>+845698752</td>
-                        <td>Cuong Nguyen</td>
-                        <td>@mrcuong</td>
+                    <tr v-for="(account, index) in listAccounts.rows">
+                        <th>{{ index }}</th>
+                        <td>{{ getPhone(account) }}</td>
+                        <td>{{ getFullName(account) }}</td>
+                        <td>{{ getUserName(account) }}</td>
                         <td><button class="btn btn-sm btn-primary">Logout</button></td>
                     </tr>
                     </tbody>
@@ -33,8 +34,53 @@
 </template>
 
 <script>
+    import Db from '~/js/db'
+
     export default {
-        name: "Home"
+        name: "Home",
+        data: function () {
+            return {
+                listAccounts: {}
+            }
+        },
+        created() {
+            this.getAcounts();
+        },
+        methods:{
+            gotoLogin() {
+                this.$router.push('login')
+            },
+            getAcounts() {
+                const _this = this;
+                Db.allDocs({include_docs: true})
+                    .then(function (docs) {
+                        console.log(docs);
+                        _this.listAccounts = docs;
+                    })
+                    .catch(function (err) {
+                        console.log(err)
+                    })
+            },
+            getPhone: function (account) {
+                if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('phone')) {
+                    return '+' + account.doc.phone;
+                }
+                return 'No phone number!'
+            },
+            getFullName: function(account) {
+                if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('user')) {
+                    return account.doc.user.first_name + ' ' + account.doc.user.last_name;
+                }
+                return 'Empty!'
+            },
+            getUserName: function(account) {
+                if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('user')
+                    && account.doc.user.hasOwnProperty('username')) {
+                    return '@' + account.doc.user.username;
+                }
+                return 'Empty!'
+            }
+        }
     }
 </script>
 
