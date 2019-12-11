@@ -21,10 +21,10 @@
                     <tbody>
                     <tr v-for="(account, index) in listAccounts.rows">
                         <th>{{ index }}</th>
-                        <td>{{ getPhone(account) }}</td>
+                        <td>+{{ getPhone(account) }}</td>
                         <td>{{ getFullName(account) }}</td>
-                        <td>{{ getUserName(account) }}</td>
-                        <td><button class="btn btn-sm btn-primary">Logout</button></td>
+                        <td>@{{ getUserName(account) }}</td>
+                        <td><button class="btn btn-sm btn-primary" v-on:click="gotoProfile(getPhone(account))">Login</button></td>
                     </tr>
                     </tbody>
                 </table>
@@ -50,6 +50,9 @@
             gotoLogin() {
                 this.$router.push('login')
             },
+            gotoProfile(phone) {
+                this.$router.push({ name: 'profile', params: { phone: phone } })
+            },
             getAcounts() {
                 const _this = this;
                 Db.allDocs({include_docs: true})
@@ -63,7 +66,7 @@
             },
             getPhone: function (account) {
                 if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('phone')) {
-                    return '+' + account.doc.phone;
+                    return account.doc.phone;
                 }
                 return 'No phone number!'
             },
@@ -76,10 +79,10 @@
             getUserName: function(account) {
                 if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('user')
                     && account.doc.user.hasOwnProperty('username')) {
-                    return '@' + account.doc.user.username;
+                    return account.doc.user.username;
                 }
                 return 'Empty!'
-            }
+            },
         }
     }
 </script>

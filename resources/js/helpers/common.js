@@ -58,7 +58,6 @@ export function isConnecting(state) {
     return false;
 }
 
-
 export function getOSName() {
     let OSName = 'Unknown';
     if (window.navigator.userAgent.indexOf('Windows NT 10.0') !== -1) OSName = 'Windows 10';

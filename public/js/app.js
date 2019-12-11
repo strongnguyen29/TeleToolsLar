@@ -1859,6 +1859,148 @@ module.exports = {
 
 /***/ }),
 
+/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/AccountProfile.vue?vue&type=script&lang=js&":
+/*!********************************************************************************************************************************************************************!*\
+  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/views/AccountProfile.vue?vue&type=script&lang=js& ***!
+  \********************************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
+/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+
+/* harmony default export */ __webpack_exports__["default"] = ({
+  name: "AccountProfile",
+  props: ['phone'],
+  data: function data() {
+    return {
+      tdClient: null,
+      account: null,
+      listChats: [],
+      error: null
+    };
+  },
+  beforeRouteEnter: function beforeRouteEnter(to, from, next) {
+    _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].get(to.params.phone, function (err, doc) {
+      console.log('beforeRouteEnter::', doc);
+      next(function (vm) {
+        return vm.setData(err, doc);
+      });
+    });
+  },
+  methods: {
+    setTdClient: function setTdClient() {
+      console.log('setTdClient:: ');
+
+      var _this = this;
+
+      this.tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__["default"](this.account, function (update) {
+        switch (update['@type']) {
+          case 'updateAuthorizationState':
+            {
+              switch (update.authorization_state['@type']) {
+                case 'authorizationStateReady':
+                  _this.getChats();
+
+                  break;
+
+                case 'authorizationStateClosed':
+                  //_this.setTdClient();
+                  break;
+              }
+            }
+        }
+      });
+    },
+    getChats: function getChats() {
+      var _this2 = this;
+
+      this.tdClient.client.send({
+        '@type': 'getChats',
+        offset_order: '9223372036854775807',
+        offset_chat_id: '0',
+        'limit': 100
+      }).then(function (result) {
+        console.log('send getChats result', result);
+
+        for (var i = 0; i < result.chat_ids.length; i++) {
+          if (result.chat_ids[i] < -1000000000) {
+            _this2.getChat(result.chat_ids[i]);
+          }
+        }
+      })["catch"](function (error) {
+        console.error('send getChats error', error);
+      });
+    },
+    getChat: function getChat(chatId) {
+      var _this3 = this;
+
+      this.tdClient.client.send({
+        '@type': 'getChat',
+        chat_id: chatId
+      }).then(function (result) {
+        console.log('send getChat result', result);
+
+        _this3.listChats.push(result);
+      })["catch"](function (error) {
+        console.error('send getChat error', error);
+      });
+    },
+    setData: function setData(err, account) {
+      console.log('setData:: ', [err, account]);
+
+      if (err) {
+        this.error = err.toString();
+      } else {
+        this.account = account;
+        this.setTdClient();
+      }
+    }
+  }
+});
+
+/***/ }),
+
 /***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/AddMember.vue?vue&type=script&lang=js&":
 /*!***************************************************************************************************************************************************************!*\
   !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/views/AddMember.vue?vue&type=script&lang=js& ***!
@@ -2009,6 +2151,9 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: "App",
   data: function data() {
@@ -2086,6 +2231,14 @@ __webpack_require__.r(__webpack_exports__);
     gotoLogin: function gotoLogin() {
       this.$router.push('login');
     },
+    gotoProfile: function gotoProfile(phone) {
+      this.$router.push({
+        name: 'profile',
+        params: {
+          phone: phone
+        }
+      });
+    },
     getAcounts: function getAcounts() {
       var _this = this;
 
@@ -2100,7 +2253,7 @@ __webpack_require__.r(__webpack_exports__);
     },
     getPhone: function getPhone(account) {
       if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('phone')) {
-        return '+' + account.doc.phone;
+        return account.doc.phone;
       }
 
       return 'No phone number!';
@@ -2114,10 +2267,151 @@ __webpack_require__.r(__webpack_exports__);
     },
     getUserName: function getUserName(account) {
       if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('user') && account.doc.user.hasOwnProperty('username')) {
-        return '@' + account.doc.user.username;
+        return account.doc.user.username;
       }
 
       return 'Empty!';
+    }
+  }
+});
+
+/***/ }),
+
+/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/JoinGroup.vue?vue&type=script&lang=js&":
+/*!***************************************************************************************************************************************************************!*\
+  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/views/JoinGroup.vue?vue&type=script&lang=js& ***!
+  \***************************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
+/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+
+/* harmony default export */ __webpack_exports__["default"] = ({
+  name: "JoinGroup",
+  data: function data() {
+    return {
+      listAccounts: [],
+      selectAccounts: [],
+      inviteLink: '',
+      tdClient: null,
+      results: [],
+      isProcessing: false
+    };
+  },
+  created: function created() {
+    this.getAcounts();
+  },
+  methods: {
+    getFullName: function getFullName(account) {
+      if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('user')) {
+        return account.doc.user.first_name + ' ' + account.doc.user.last_name;
+      }
+
+      return 'Empty!';
+    },
+    getAcounts: function getAcounts() {
+      var _this = this;
+
+      _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].allDocs({
+        include_docs: true
+      }).then(function (docs) {
+        console.log(docs);
+        _this.listAccounts = docs.rows;
+      })["catch"](function (err) {
+        console.log(err);
+      });
+    },
+    joinGroup: function joinGroup() {
+      var isAll = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+
+      if (this.inviteLink === null || this.inviteLink.length === 0) {
+        alert('Link error!');
+        return;
+      }
+
+      this.isProcessing = true;
+
+      if (isAll) {
+        for (var i = 0; i < this.listAccounts.length; i++) {
+          this.setTdClient(this.listAccounts[i]);
+        }
+      } else {
+        for (var _i = 0; _i < this.selectAccounts.length; _i++) {
+          this.setTdClient(this.listAccounts[this.selectAccounts[_i]]);
+        }
+      }
+    },
+    setTdClient: function setTdClient(account) {
+      console.log(account);
+
+      var _this = this;
+
+      _this.tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__["default"](account, function (update) {
+        switch (update['@type']) {
+          case 'updateAuthorizationState':
+            {
+              switch (update.authorization_state['@type']) {
+                case 'authorizationStateReady':
+                  _this.tdClient.send({
+                    '@type': 'joinChatByInviteLink',
+                    invite_link: _this.inviteLink
+                  }).then(function (result) {
+                    console.log('send joinChatByInviteLink result', result);
+                  })["catch"](function (error) {
+                    console.error('send joinChatByInviteLink error', error);
+                  });
+
+                  break;
+              }
+            }
+        }
+      });
     }
   }
 });
@@ -2219,58 +2513,42 @@ var tdClient;
       _js_db__WEBPACK_IMPORTED_MODULE_3__["default"].get(this.phoneNumber).then(function (doc) {
         console.log(doc);
         _this.account = doc;
-        if (!_this.apiId.empty()) _this.account.apiId = _this.apiId;
-        _this.account.apiHash = _this.apiHash;
+
+        if (_this.apiId.length > 1) {
+          _this.account.apiId = _this.apiId;
+        }
+
+        if (_this.apiHash.length > 1) {
+          _this.account.apiHash = _this.apiHash;
+        }
 
         _this.tdClientInit();
       })["catch"](function (err) {
         console.log(err);
-        _this.account = new _models_account__WEBPACK_IMPORTED_MODULE_2__["default"](this.phoneNumber, this.apiId, this.apiHash);
+        _this.account = new _models_account__WEBPACK_IMPORTED_MODULE_2__["default"](_this.phoneNumber, _this.apiId, _this.apiHash);
 
         _this.tdClientInit();
       });
     },
     tdClientInit: function tdClientInit() {
-      var _this2 = this;
+      var _this = this;
 
-      tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__["default"](this.account);
-
-      tdClient.client.onUpdate = function (update) {
+      tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__["default"](_this.account, function (update) {
         switch (update['@type']) {
           case 'updateAuthorizationState':
             {
-              console.log('receive update', update);
-
               switch (update.authorization_state['@type']) {
-                case 'authorizationStateWaitTdlibParameters':
-                  console.log(tdClient.parameters);
-                  tdClient.client.send({
-                    '@type': 'setTdlibParameters',
-                    parameters: tdClient.parameters
-                  }).then(function (result) {
-                    console.log('send setTdlibParameters result', result);
-                  })["catch"](function (error) {
-                    console.error('send setTdlibParameters error', error);
-                  });
-                  break;
-
-                case 'authorizationStateWaitEncryptionKey':
-                  tdClient.client.send({
-                    '@type': 'checkDatabaseEncryptionKey'
-                  });
-                  break;
-
                 case 'authorizationStateWaitPhoneNumber':
-                  _this2.sendPhone();
+                  _this.sendPhone();
 
                   break;
 
                 case 'authorizationStateWaitCode':
-                  _this2.loginState = 'login-code';
+                  _this.loginState = 'login-code';
                   break;
 
                 case 'authorizationStateReady':
-                  _this2.loginState = 'login-done';
+                  _this.loginState = 'login-done';
                   break;
               }
 
@@ -2282,11 +2560,11 @@ var tdClient;
               if (update.name === 'my_id') {
                 console.log('receive update', update);
 
-                _this2.getUserInfo(update.value.value);
+                _this.getUserInfo(update.value.value);
               }
             }
         }
-      };
+      });
     },
     sendPhone: function sendPhone() {
       tdClient.client.send({
@@ -2309,7 +2587,7 @@ var tdClient;
       });
     },
     getUserInfo: function getUserInfo(userId) {
-      var _this3 = this;
+      var _this2 = this;
 
       var _this = this;
 
@@ -2319,7 +2597,7 @@ var tdClient;
       }).then(function (result) {
         console.log('send getUserInfo result', result);
         _this.account.user = result;
-        _js_db__WEBPACK_IMPORTED_MODULE_3__["default"].put(_this3.account).then(function (response) {
+        _js_db__WEBPACK_IMPORTED_MODULE_3__["default"].put(_this2.account).then(function (response) {
           // handle response
           console.log('DB: add new account:: success', response);
         })["catch"](function (err) {
@@ -53559,6 +53837,84 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
 
 /***/ }),
 
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/AccountProfile.vue?vue&type=template&id=73a400ca&scoped=true&":
+/*!************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/views/AccountProfile.vue?vue&type=template&id=73a400ca&scoped=true& ***!
+  \************************************************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c("div", [
+    _vm._m(0),
+    _vm._v(" "),
+    _vm.account
+      ? _c("div", { staticClass: "row" }, [_vm._m(1), _vm._v(" "), _vm._m(2)])
+      : _vm._e()
+  ])
+}
+var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "row" }, [
+      _c("div", { staticClass: "col-12 d-inline-flex" }, [
+        _c("h3", [_vm._v("Account profile")])
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "col-4" }, [
+      _c("div", { staticClass: "card text-white bg-dark" }, [
+        _c("div", { staticClass: "card-header" }, [
+          _c("h5", { staticClass: "card-title m-0" }, [_vm._v("Info")])
+        ]),
+        _vm._v(" "),
+        _c("div", { staticClass: "card-body" }, [
+          _c("p", { staticClass: "card-text" }, [
+            _c("strong", [_vm._v("Total Add: ")]),
+            _vm._v("12345")
+          ])
+        ])
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "col-4" }, [
+      _c("table", { staticClass: "table table-striped table-dark" }, [
+        _c("thead", [
+          _c("tr", [
+            _c("th", { attrs: { scope: "col" } }, [_vm._v("Group chat")]),
+            _vm._v(" "),
+            _c("th", { attrs: { scope: "col" } }, [_vm._v("#")])
+          ])
+        ]),
+        _vm._v(" "),
+        _c("tbody", [_c("tr")])
+      ])
+    ])
+  }
+]
+render._withStripped = true
+
+
+
+/***/ }),
+
 /***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/AddMember.vue?vue&type=template&id=699e01e8&scoped=true&":
 /*!*******************************************************************************************************************************************************************************************************************!*\
   !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/views/AddMember.vue?vue&type=template&id=699e01e8&scoped=true& ***!
@@ -53922,6 +54278,29 @@ var render = function() {
                   )
                 ],
                 1
+              ),
+              _vm._v(" "),
+              _c(
+                "li",
+                {
+                  staticClass: "nav-item",
+                  class: [
+                    _vm.currentPage.includes("join-group")
+                      ? _vm.activeClass
+                      : ""
+                  ]
+                },
+                [
+                  _c(
+                    "router-link",
+                    {
+                      staticClass: "nav-link",
+                      attrs: { to: { name: "join-group" } }
+                    },
+                    [_vm._v("Join group")]
+                  )
+                ],
+                1
               )
             ])
           ]
@@ -53982,13 +54361,26 @@ var render = function() {
               return _c("tr", [
                 _c("th", [_vm._v(_vm._s(index))]),
                 _vm._v(" "),
-                _c("td", [_vm._v(_vm._s(_vm.getPhone(account)))]),
+                _c("td", [_vm._v("+" + _vm._s(_vm.getPhone(account)))]),
                 _vm._v(" "),
                 _c("td", [_vm._v(_vm._s(_vm.getFullName(account)))]),
                 _vm._v(" "),
-                _c("td", [_vm._v(_vm._s(_vm.getUserName(account)))]),
+                _c("td", [_vm._v("@" + _vm._s(_vm.getUserName(account)))]),
                 _vm._v(" "),
-                _vm._m(1, true)
+                _c("td", [
+                  _c(
+                    "button",
+                    {
+                      staticClass: "btn btn-sm btn-primary",
+                      on: {
+                        click: function($event) {
+                          _vm.gotoProfile(_vm.getPhone(account))
+                        }
+                      }
+                    },
+                    [_vm._v("Login")]
+                  )
+                ])
               ])
             }),
             0
@@ -54016,14 +54408,196 @@ var staticRenderFns = [
         _c("th", { attrs: { scope: "col" } }, [_vm._v("#")])
       ])
     ])
+  }
+]
+render._withStripped = true
+
+
+
+/***/ }),
+
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/JoinGroup.vue?vue&type=template&id=5aa0a2e6&scoped=true&":
+/*!*******************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/views/JoinGroup.vue?vue&type=template&id=5aa0a2e6&scoped=true& ***!
+  \*******************************************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c("div", [
+    _vm._m(0),
+    _vm._v(" "),
+    _c("div", { staticClass: "row mt-4" }, [
+      _c("div", { staticClass: "col-4" }, [
+        _c("div", { staticClass: "form-group" }, [
+          _c("label", { attrs: { for: "inviteLink" } }, [
+            _vm._v("Group Invite Link")
+          ]),
+          _vm._v(" "),
+          _c("input", {
+            directives: [
+              {
+                name: "model",
+                rawName: "v-model",
+                value: _vm.inviteLink,
+                expression: "inviteLink"
+              }
+            ],
+            staticClass: "form-control",
+            attrs: {
+              type: "url",
+              id: "inviteLink",
+              placeholder: "Invite link..."
+            },
+            domProps: { value: _vm.inviteLink },
+            on: {
+              input: function($event) {
+                if ($event.target.composing) {
+                  return
+                }
+                _vm.inviteLink = $event.target.value
+              }
+            }
+          })
+        ]),
+        _vm._v(" "),
+        _c("div", { staticClass: "form-group" }, [
+          _c(
+            "button",
+            {
+              staticClass: "btn btn-primary",
+              attrs: { type: "submit" },
+              on: { click: _vm.joinGroup }
+            },
+            [_vm._v("Join")]
+          ),
+          _vm._v(" "),
+          _c(
+            "button",
+            {
+              staticClass: "btn btn-primary",
+              attrs: { type: "submit" },
+              on: {
+                click: function($event) {
+                  return _vm.joinGroup(true)
+                }
+              }
+            },
+            [_vm._v("Join All")]
+          )
+        ])
+      ]),
+      _vm._v(" "),
+      _c("div", { staticClass: "col-4 offset-1" }, [
+        _c("table", { staticClass: "table table-striped table-dark" }, [
+          _vm._m(1),
+          _vm._v(" "),
+          _c(
+            "tbody",
+            _vm._l(_vm.listAccounts, function(account, index) {
+              return _c("tr", [
+                _c("th", [
+                  _c("input", {
+                    directives: [
+                      {
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.selectAccounts,
+                        expression: "selectAccounts"
+                      }
+                    ],
+                    attrs: { type: "checkbox", id: "account_" + index },
+                    domProps: {
+                      value: index,
+                      checked: Array.isArray(_vm.selectAccounts)
+                        ? _vm._i(_vm.selectAccounts, index) > -1
+                        : _vm.selectAccounts
+                    },
+                    on: {
+                      change: function($event) {
+                        var $$a = _vm.selectAccounts,
+                          $$el = $event.target,
+                          $$c = $$el.checked ? true : false
+                        if (Array.isArray($$a)) {
+                          var $$v = index,
+                            $$i = _vm._i($$a, $$v)
+                          if ($$el.checked) {
+                            $$i < 0 && (_vm.selectAccounts = $$a.concat([$$v]))
+                          } else {
+                            $$i > -1 &&
+                              (_vm.selectAccounts = $$a
+                                .slice(0, $$i)
+                                .concat($$a.slice($$i + 1)))
+                          }
+                        } else {
+                          _vm.selectAccounts = $$c
+                        }
+                      }
+                    }
+                  })
+                ]),
+                _vm._v(" "),
+                _c("td", [
+                  _c(
+                    "label",
+                    { staticClass: "m-0", attrs: { for: "account_" + index } },
+                    [_vm._v(_vm._s(account.doc.phone))]
+                  )
+                ]),
+                _vm._v(" "),
+                _c("td", [_vm._v(_vm._s(_vm.getFullName(account)))]),
+                _vm._v(" "),
+                _c("td", [
+                  _vm._v(
+                    _vm._s(
+                      account.hasOwnProperty("added")
+                        ? account.added
+                        : _vm.isProcessing
+                        ? "processing..."
+                        : "--"
+                    )
+                  )
+                ])
+              ])
+            }),
+            0
+          )
+        ])
+      ])
+    ])
+  ])
+}
+var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "row" }, [
+      _c("div", { staticClass: "col-12 d-inline-flex" }, [
+        _c("h3", [_vm._v("Join group")])
+      ])
+    ])
   },
   function() {
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("td", [
-      _c("button", { staticClass: "btn btn-sm btn-primary" }, [
-        _vm._v("Logout")
+    return _c("thead", [
+      _c("tr", [
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("#")]),
+        _vm._v(" "),
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Phone")]),
+        _vm._v(" "),
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Name")]),
+        _vm._v(" "),
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Status")])
       ])
     ])
   }
@@ -69514,22 +70088,28 @@ var API_HASH = '3580aaad6483792444aa67b026b57416';
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return TdWeb; });
 /* harmony import */ var _helpers_common__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./helpers/common */ "./resources/js/helpers/common.js");
-/* harmony import */ var tdweb__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! tdweb */ "./node_modules/tdweb/dist/tdweb.js");
-/* harmony import */ var tdweb__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(tdweb__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _js_Constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/Constants */ "./resources/js/Constants.js");
+/* harmony import */ var tdweb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! tdweb */ "./node_modules/tdweb/dist/tdweb.js");
+/* harmony import */ var tdweb__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(tdweb__WEBPACK_IMPORTED_MODULE_2__);
+
 
 
 /**
  *
  * @param account Account
+ * @param callBack
  * @constructor
  */
 
 function TdWeb(account) {
+  var _this = this;
+
+  var callBack = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
   this.parameters = {
     '@type': 'tdlibParameters',
     use_test_dc: false,
-    api_id: account.apiId,
-    api_hash: account.apiHash,
+    api_id: account.apiId ? account.apiId : _js_Constants__WEBPACK_IMPORTED_MODULE_1__["API_ID"],
+    api_hash: account.apiHash ? account.apiHash : _js_Constants__WEBPACK_IMPORTED_MODULE_1__["API_HASH"],
     system_language_code: 'en',
     device_model: Object(_helpers_common__WEBPACK_IMPORTED_MODULE_0__["getBrowser"])(),
     system_version: Object(_helpers_common__WEBPACK_IMPORTED_MODULE_0__["getOSName"])(),
@@ -69540,62 +70120,40 @@ function TdWeb(account) {
     database_directory: account.databaseDirectory,
     files_directory: account.filesDirectory
   };
-  this.client = new tdweb__WEBPACK_IMPORTED_MODULE_1___default.a({
-    logVerbosityLevel: 1,
-    jsLogVerbosityLevel: 3,
-    mode: 'asmjs',
-    prefix: 'tdlib',
+  this.client = new tdweb__WEBPACK_IMPORTED_MODULE_2___default.a({
+    logVerbosityLevel: 2,
+    jsLogVerbosityLevel: 'info',
+    mode: 'auto',
+    instanceName: 'tdlib_' + account.phone,
     readOnly: false,
     isBackground: false,
     useDatabase: true
   });
 
   this.client.onUpdate = function (update) {
-    console.log('TdWeb :: receive update', update);
+    console.log('TdWeb:: receive update', update);
 
     switch (update['@type']) {
       case 'updateAuthorizationState':
         {
           switch (update.authorization_state['@type']) {
-            case 'authorizationStateLoggingOut':
+            case 'authorizationStateWaitEncryptionKey':
+              _this.client.send({
+                '@type': 'checkDatabaseEncryptionKey'
+              });
+
               break;
 
             case 'authorizationStateWaitTdlibParameters':
-              //this.sendParamters();
-              break;
+              _this.sendParamters();
 
-            case 'authorizationStateWaitEncryptionKey':
-              //tdClient.send({ '@type': 'checkDatabaseEncryptionKey' });
-              break;
-
-            case 'authorizationStateWaitPhoneNumber':
-              {
-                //this.appState = 'login-phone';
-                break;
-              }
-
-            case 'authorizationStateWaitCode':
-              //this.appState = 'login-code';
-              break;
-
-            case 'authorizationStateWaitPassword':
-              break;
-
-            case 'authorizationStateReady':
-              //this.appState = 'login-done';
-              //this.getChats();
-              break;
-
-            case 'authorizationStateClosing':
-              break;
-
-            case 'authorizationStateClosed':
-              break;
-
-            default:
               break;
           }
         }
+    }
+
+    if (callBack != null) {
+      callBack(update);
     }
   };
 
@@ -69862,10 +70420,10 @@ function Account(phone) {
   this._id = phone;
   this.phone = phone;
   this.user = null;
-  this.apiId = apiId == null || apiId.length === 0 ? _js_Constants__WEBPACK_IMPORTED_MODULE_0__["API_ID"] : apiId;
-  this.apiHash = apiHash == null || apiHash.length === 0 ? _js_Constants__WEBPACK_IMPORTED_MODULE_0__["API_HASH"] : apiHash;
+  this.apiId = apiId;
+  this.apiHash = apiHash;
   this.databaseDirectory = '/acc/' + phone + '/db';
-  this.filesDirectory = '/' + phone;
+  this.filesDirectory = '/' + phone + '/files';
   return this;
 }
 
@@ -69886,6 +70444,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _js_views_Home__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ~/js/views/Home */ "./resources/js/views/Home.vue");
 /* harmony import */ var _js_views_Login__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ~/js/views/Login */ "./resources/js/views/Login.vue");
 /* harmony import */ var _js_views_AddMember__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ~/js/views/AddMember */ "./resources/js/views/AddMember.vue");
+/* harmony import */ var _js_views_JoinGroup__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ~/js/views/JoinGroup */ "./resources/js/views/JoinGroup.vue");
+/* harmony import */ var _js_views_AccountProfile__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ~/js/views/AccountProfile */ "./resources/js/views/AccountProfile.vue");
+
+
 
 
 
@@ -69906,9 +70468,89 @@ var router = new vue_router__WEBPACK_IMPORTED_MODULE_1__["default"]({
     path: '/add-member',
     name: 'add-member',
     component: _js_views_AddMember__WEBPACK_IMPORTED_MODULE_4__["default"]
+  }, {
+    path: '/join-group',
+    name: 'join-group',
+    component: _js_views_JoinGroup__WEBPACK_IMPORTED_MODULE_5__["default"]
+  }, {
+    path: '/profile/:phone',
+    name: 'profile',
+    component: _js_views_AccountProfile__WEBPACK_IMPORTED_MODULE_6__["default"],
+    props: {
+      "default": true
+    }
   }]
 });
 /* harmony default export */ __webpack_exports__["default"] = (router);
+
+/***/ }),
+
+/***/ "./resources/js/views/AccountProfile.vue":
+/*!***********************************************!*\
+  !*** ./resources/js/views/AccountProfile.vue ***!
+  \***********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _AccountProfile_vue_vue_type_template_id_73a400ca_scoped_true___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./AccountProfile.vue?vue&type=template&id=73a400ca&scoped=true& */ "./resources/js/views/AccountProfile.vue?vue&type=template&id=73a400ca&scoped=true&");
+/* harmony import */ var _AccountProfile_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./AccountProfile.vue?vue&type=script&lang=js& */ "./resources/js/views/AccountProfile.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
+  _AccountProfile_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _AccountProfile_vue_vue_type_template_id_73a400ca_scoped_true___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _AccountProfile_vue_vue_type_template_id_73a400ca_scoped_true___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  "73a400ca",
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "resources/js/views/AccountProfile.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./resources/js/views/AccountProfile.vue?vue&type=script&lang=js&":
+/*!************************************************************************!*\
+  !*** ./resources/js/views/AccountProfile.vue?vue&type=script&lang=js& ***!
+  \************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_AccountProfile_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/babel-loader/lib??ref--4-0!../../../node_modules/vue-loader/lib??vue-loader-options!./AccountProfile.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/AccountProfile.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_AccountProfile_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./resources/js/views/AccountProfile.vue?vue&type=template&id=73a400ca&scoped=true&":
+/*!******************************************************************************************!*\
+  !*** ./resources/js/views/AccountProfile.vue?vue&type=template&id=73a400ca&scoped=true& ***!
+  \******************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_AccountProfile_vue_vue_type_template_id_73a400ca_scoped_true___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../node_modules/vue-loader/lib??vue-loader-options!./AccountProfile.vue?vue&type=template&id=73a400ca&scoped=true& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/AccountProfile.vue?vue&type=template&id=73a400ca&scoped=true&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_AccountProfile_vue_vue_type_template_id_73a400ca_scoped_true___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_AccountProfile_vue_vue_type_template_id_73a400ca_scoped_true___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
 
 /***/ }),
 
@@ -70150,6 +70792,75 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Home_vue_vue_type_template_id_63cd6604_scoped_true___WEBPACK_IMPORTED_MODULE_0__["render"]; });
 
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Home_vue_vue_type_template_id_63cd6604_scoped_true___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
+
+/***/ }),
+
+/***/ "./resources/js/views/JoinGroup.vue":
+/*!******************************************!*\
+  !*** ./resources/js/views/JoinGroup.vue ***!
+  \******************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _JoinGroup_vue_vue_type_template_id_5aa0a2e6_scoped_true___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./JoinGroup.vue?vue&type=template&id=5aa0a2e6&scoped=true& */ "./resources/js/views/JoinGroup.vue?vue&type=template&id=5aa0a2e6&scoped=true&");
+/* harmony import */ var _JoinGroup_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./JoinGroup.vue?vue&type=script&lang=js& */ "./resources/js/views/JoinGroup.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
+  _JoinGroup_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _JoinGroup_vue_vue_type_template_id_5aa0a2e6_scoped_true___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _JoinGroup_vue_vue_type_template_id_5aa0a2e6_scoped_true___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  "5aa0a2e6",
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "resources/js/views/JoinGroup.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./resources/js/views/JoinGroup.vue?vue&type=script&lang=js&":
+/*!*******************************************************************!*\
+  !*** ./resources/js/views/JoinGroup.vue?vue&type=script&lang=js& ***!
+  \*******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_JoinGroup_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/babel-loader/lib??ref--4-0!../../../node_modules/vue-loader/lib??vue-loader-options!./JoinGroup.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/JoinGroup.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_JoinGroup_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./resources/js/views/JoinGroup.vue?vue&type=template&id=5aa0a2e6&scoped=true&":
+/*!*************************************************************************************!*\
+  !*** ./resources/js/views/JoinGroup.vue?vue&type=template&id=5aa0a2e6&scoped=true& ***!
+  \*************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_JoinGroup_vue_vue_type_template_id_5aa0a2e6_scoped_true___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../node_modules/vue-loader/lib??vue-loader-options!./JoinGroup.vue?vue&type=template&id=5aa0a2e6&scoped=true& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/views/JoinGroup.vue?vue&type=template&id=5aa0a2e6&scoped=true&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_JoinGroup_vue_vue_type_template_id_5aa0a2e6_scoped_true___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_JoinGroup_vue_vue_type_template_id_5aa0a2e6_scoped_true___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
 
 
 

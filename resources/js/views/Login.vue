@@ -87,53 +87,36 @@
                     .then(function (doc) {
                         console.log(doc);
                         _this.account = doc;
-                        if (!_this.apiId.empty())
-                        _this.account.apiId = _this.apiId;
-                        _this.account.apiHash = _this.apiHash;
+                        if (_this.apiId.length > 1) {
+                            _this.account.apiId = _this.apiId;
+                        }
+                        if (_this.apiHash.length > 1) {
+                            _this.account.apiHash = _this.apiHash;
+                        }
                         _this.tdClientInit();
                     }).catch(function (err) {
                         console.log(err);
-                        _this.account = new Account(this.phoneNumber, this.apiId, this.apiHash);
+                        _this.account = new Account(_this.phoneNumber, _this.apiId, _this.apiHash);
                         _this.tdClientInit();
                     });
             },
             tdClientInit() {
-                tdClient = new TdClient(this.account);
-                tdClient.client.onUpdate = update => {
-
+                const _this = this;
+                tdClient = new TdClient(_this.account, function (update) {
                     switch (update['@type']) {
-
                         case 'updateAuthorizationState': {
-                            console.log('receive update', update);
                             switch (update.authorization_state['@type']) {
 
-                                case 'authorizationStateWaitTdlibParameters':
-                                    console.log(tdClient.parameters);
-                                    tdClient.client.send({
-                                        '@type': 'setTdlibParameters',
-                                        parameters: tdClient.parameters
-                                    }).then(result => {
-                                        console.log('send setTdlibParameters result', result);
-                                    }).catch(error => {
-                                        console.error('send setTdlibParameters error', error);
-                                    });
-                                    break;
-
-                                case 'authorizationStateWaitEncryptionKey':
-                                    tdClient.client.send({ '@type': 'checkDatabaseEncryptionKey' });
-                                    break;
-
                                 case 'authorizationStateWaitPhoneNumber':
-                                    this.sendPhone();
+                                    _this.sendPhone();
                                     break;
 
                                 case 'authorizationStateWaitCode':
-                                    this.loginState = 'login-code';
+                                    _this.loginState = 'login-code';
                                     break;
 
                                 case 'authorizationStateReady':
-                                    this.loginState = 'login-done';
-
+                                    _this.loginState = 'login-done';
                                     break;
                             }
                             break;
@@ -142,11 +125,12 @@
 
                             if (update.name === 'my_id') {
                                 console.log('receive update', update);
-                                this.getUserInfo(update.value.value);
+                                _this.getUserInfo(update.value.value);
                             }
                         }
                     }
-                };
+                });
+
             },
             sendPhone() {
                 tdClient.client.send({
