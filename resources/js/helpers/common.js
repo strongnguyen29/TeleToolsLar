@@ -129,3 +129,18 @@ export function stringToBoolean(string) {
             return Boolean(string);
     }
 }
+
+export function isSuperGroupChat(chatId) {
+    return chatId < -1000000000;
+}
+
+export function isPublicGroup(chat) {
+
+    if (chat && chat.hasOwnProperty('type')
+        && chat.type['@type'] === 'chatTypeSupergroup'
+        && !chat.type.is_channel) {
+        return true;
+    }
+
+    return false;
+}

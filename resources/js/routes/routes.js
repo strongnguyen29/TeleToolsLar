@@ -33,10 +33,10 @@ const router = new VueRouter({
             component: JoinGroup
         },
         {
-            path: '/profile/:phone',
+            path: '/profile/',
             name: 'profile',
             component: AccountProfile,
-            props: {default: true}
+            props: (route) => ({ query: route.query.phone })
         }
     ]
 });

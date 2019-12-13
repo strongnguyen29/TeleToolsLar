@@ -53,9 +53,11 @@
 <script>
 
     import {isValidPhoneNumber} from '~/js/helpers/common'
+    import {saveAccount, saveGroupChat} from '~/js/helpers/database'
     import TdClient from '~/js/TdWeb'
     import Account from "../models/account";
     import Db from '~/js/db'
+    import GroupChat from "../models/chat";
 
     let tdClient;
 
@@ -71,16 +73,12 @@
                 codeActive: ''
             }
         },
-        created() {
-
-        },
         methods :{
             getAccount() {
                 if(!isValidPhoneNumber(this.phoneNumber)) {
                     alert('Wrong phone number!');
                     return;
                 }
-
                 const _this = this;
 
                 Db.get(this.phoneNumber)
@@ -108,7 +106,7 @@
                             switch (update.authorization_state['@type']) {
 
                                 case 'authorizationStateWaitPhoneNumber':
-                                    _this.sendPhone();
+                                    tdClient.sendPhone(_this.phoneNumber);
                                     break;
 
                                 case 'authorizationStateWaitCode':
@@ -117,6 +115,7 @@
 
                                 case 'authorizationStateReady':
                                     _this.loginState = 'login-done';
+                                    _this.getChats();
                                     break;
                             }
                             break;
@@ -124,53 +123,50 @@
                         case 'updateOption': {
 
                             if (update.name === 'my_id') {
-                                console.log('receive update', update);
-                                _this.getUserInfo(update.value.value);
+
+                                tdClient.getUser(update.value.value, function (user, error) {
+                                    if (user) {
+                                        _this.account.user = user;
+                                        saveAccount(_this.account);
+                                    }
+                                })
                             }
                         }
                     }
                 });
 
             },
-            sendPhone() {
-                tdClient.client.send({
-                    '@type': 'setAuthenticationPhoneNumber',
-                    phone_number: this.phoneNumber
-                }).then(result => {
-                    console.log('send phone result', result);
-                }).catch(error => {
-                    console.error('send phone error', error);
-                });
-            },
             sendCode() {
-                tdClient.client.send({
-                    '@type': 'checkAuthenticationCode',
-                    code: this.codeActive
-                }).then(result => {
-                    console.log('send code result', result);
-                }).catch(error => {
-                    console.error('send code error', error);
+                tdClient.sendCode(this.codeActive);
+            },
+            getChats() {
+                const _this = this;
+                tdClient.getChats(function (result, error) {
+                    if (result) {
+                        for (let i = 0; i < result.chat_ids.length; i++) {
+                            let chatId = result.chat_ids[i];
+
+                            if (isSuperGroupChat(chatId)) {
+                                
+                                Db.get(chatId, function (err, doc) {
+                                    if (err) {
+                                        _this.getChat(chatId);
+                                    }
+                                });
+                            }
+                        }
+                    }
                 });
             },
-            getUserInfo(userId) {
+            getChat(chatId) {
                 const _this = this;
-                tdClient.client.send({
-                    '@type': 'getUser',
-                    user_id: userId
-                }).then(result => {
-                    console.log('send getUserInfo result', result);
-                    _this.account.user = result;
-
-                    Db.put(this.account)
-                        .then(function (response) {
-                            // handle response
-                            console.log('DB: add new account:: success', response);
-                        }).catch(function (err) {
-                        console.log('DB: add new account:: error',err);
-                    });
-
-                }).catch(error => {
-                    console.error('send getUserInfo error', error);
+                tdClient.getChat(chatId, function (result, error) {
+                    if (result) {
+                        if (isPublicGroup(result)) {
+                            _this.listChats.push(result);
+                            saveGroupChat(new GroupChat(result))
+                        }
+                    }
                 });
             }
         }

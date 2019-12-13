@@ -1868,8 +1868,25 @@ module.exports = {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
-/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+/* harmony import */ var _js_helpers_common__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/helpers/common */ "./resources/js/helpers/common.js");
+/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
+/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -1909,32 +1926,32 @@ __webpack_require__.r(__webpack_exports__);
 //
 
 
+
+var tdClient;
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: "AccountProfile",
   props: ['phone'],
   data: function data() {
     return {
-      tdClient: null,
       account: null,
       listChats: [],
       error: null
     };
   },
   beforeRouteEnter: function beforeRouteEnter(to, from, next) {
-    _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].get(to.params.phone, function (err, doc) {
-      console.log('beforeRouteEnter::', doc);
+    _js_db__WEBPACK_IMPORTED_MODULE_1__["default"].get(to.query.phone, function (err, account) {
       next(function (vm) {
-        return vm.setData(err, doc);
+        return vm.setData(err, account);
       });
     });
   },
   methods: {
     setTdClient: function setTdClient() {
-      console.log('setTdClient:: ');
+      console.log('setTdClient');
 
       var _this = this;
 
-      this.tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__["default"](this.account, function (update) {
+      tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__["default"](_this.account, function (update) {
         switch (update['@type']) {
           case 'updateAuthorizationState':
             {
@@ -1943,47 +1960,35 @@ __webpack_require__.r(__webpack_exports__);
                   _this.getChats();
 
                   break;
-
-                case 'authorizationStateClosed':
-                  //_this.setTdClient();
-                  break;
               }
             }
         }
       });
     },
     getChats: function getChats() {
-      var _this2 = this;
+      var _this = this;
 
-      this.tdClient.client.send({
-        '@type': 'getChats',
-        offset_order: '9223372036854775807',
-        offset_chat_id: '0',
-        'limit': 100
-      }).then(function (result) {
-        console.log('send getChats result', result);
+      tdClient.getChats(function (result, error) {
+        if (result) {
+          for (var i = 0; i < result.chat_ids.length; i++) {
+            var chatId = result.chat_ids[i];
 
-        for (var i = 0; i < result.chat_ids.length; i++) {
-          if (result.chat_ids[i] < -1000000000) {
-            _this2.getChat(result.chat_ids[i]);
+            if (Object(_js_helpers_common__WEBPACK_IMPORTED_MODULE_0__["isSuperGroupChat"])(chatId)) {
+              _this.getChat(chatId);
+            }
           }
         }
-      })["catch"](function (error) {
-        console.error('send getChats error', error);
       });
     },
     getChat: function getChat(chatId) {
-      var _this3 = this;
+      var _this = this;
 
-      this.tdClient.client.send({
-        '@type': 'getChat',
-        chat_id: chatId
-      }).then(function (result) {
-        console.log('send getChat result', result);
-
-        _this3.listChats.push(result);
-      })["catch"](function (error) {
-        console.error('send getChat error', error);
+      tdClient.getChat(chatId, function (result, error) {
+        if (result) {
+          if (Object(_js_helpers_common__WEBPACK_IMPORTED_MODULE_0__["isPublicGroup"])(result)) {
+            _this.listChats.push(result);
+          }
+        }
       });
     },
     setData: function setData(err, account) {
@@ -2234,7 +2239,7 @@ __webpack_require__.r(__webpack_exports__);
     gotoProfile: function gotoProfile(phone) {
       this.$router.push({
         name: 'profile',
-        params: {
+        query: {
           phone: phone
         }
       });
@@ -2428,9 +2433,11 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _js_helpers_common__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/helpers/common */ "./resources/js/helpers/common.js");
-/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
-/* harmony import */ var _models_account__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../models/account */ "./resources/js/models/account.js");
-/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
+/* harmony import */ var _js_helpers_database__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/helpers/database */ "./resources/js/helpers/database.js");
+/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+/* harmony import */ var _models_account__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../models/account */ "./resources/js/models/account.js");
+/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
+/* harmony import */ var _models_chat__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../models/chat */ "./resources/js/models/chat.js");
 //
 //
 //
@@ -2483,6 +2490,8 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+
+
 
 
 
@@ -2500,7 +2509,6 @@ var tdClient;
       codeActive: ''
     };
   },
-  created: function created() {},
   methods: {
     getAccount: function getAccount() {
       if (!Object(_js_helpers_common__WEBPACK_IMPORTED_MODULE_0__["isValidPhoneNumber"])(this.phoneNumber)) {
@@ -2510,7 +2518,7 @@ var tdClient;
 
       var _this = this;
 
-      _js_db__WEBPACK_IMPORTED_MODULE_3__["default"].get(this.phoneNumber).then(function (doc) {
+      _js_db__WEBPACK_IMPORTED_MODULE_4__["default"].get(this.phoneNumber).then(function (doc) {
         console.log(doc);
         _this.account = doc;
 
@@ -2525,7 +2533,7 @@ var tdClient;
         _this.tdClientInit();
       })["catch"](function (err) {
         console.log(err);
-        _this.account = new _models_account__WEBPACK_IMPORTED_MODULE_2__["default"](_this.phoneNumber, _this.apiId, _this.apiHash);
+        _this.account = new _models_account__WEBPACK_IMPORTED_MODULE_3__["default"](_this.phoneNumber, _this.apiId, _this.apiHash);
 
         _this.tdClientInit();
       });
@@ -2533,14 +2541,13 @@ var tdClient;
     tdClientInit: function tdClientInit() {
       var _this = this;
 
-      tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__["default"](_this.account, function (update) {
+      tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__["default"](_this.account, function (update) {
         switch (update['@type']) {
           case 'updateAuthorizationState':
             {
               switch (update.authorization_state['@type']) {
                 case 'authorizationStateWaitPhoneNumber':
-                  _this.sendPhone();
-
+                  tdClient.sendPhone(_this.phoneNumber);
                   break;
 
                 case 'authorizationStateWaitCode':
@@ -2549,6 +2556,9 @@ var tdClient;
 
                 case 'authorizationStateReady':
                   _this.loginState = 'login-done';
+
+                  _this.getChats();
+
                   break;
               }
 
@@ -2558,53 +2568,54 @@ var tdClient;
           case 'updateOption':
             {
               if (update.name === 'my_id') {
-                console.log('receive update', update);
-
-                _this.getUserInfo(update.value.value);
+                tdClient.getUser(update.value.value, function (user, error) {
+                  if (user) {
+                    _this.account.user = user;
+                    Object(_js_helpers_database__WEBPACK_IMPORTED_MODULE_1__["saveAccount"])(_this.account);
+                  }
+                });
               }
             }
         }
       });
     },
-    sendPhone: function sendPhone() {
-      tdClient.client.send({
-        '@type': 'setAuthenticationPhoneNumber',
-        phone_number: this.phoneNumber
-      }).then(function (result) {
-        console.log('send phone result', result);
-      })["catch"](function (error) {
-        console.error('send phone error', error);
-      });
-    },
     sendCode: function sendCode() {
-      tdClient.client.send({
-        '@type': 'checkAuthenticationCode',
-        code: this.codeActive
-      }).then(function (result) {
-        console.log('send code result', result);
-      })["catch"](function (error) {
-        console.error('send code error', error);
-      });
+      tdClient.sendCode(this.codeActive);
     },
-    getUserInfo: function getUserInfo(userId) {
-      var _this2 = this;
-
+    getChats: function getChats() {
       var _this = this;
 
-      tdClient.client.send({
-        '@type': 'getUser',
-        user_id: userId
-      }).then(function (result) {
-        console.log('send getUserInfo result', result);
-        _this.account.user = result;
-        _js_db__WEBPACK_IMPORTED_MODULE_3__["default"].put(_this2.account).then(function (response) {
-          // handle response
-          console.log('DB: add new account:: success', response);
-        })["catch"](function (err) {
-          console.log('DB: add new account:: error', err);
-        });
-      })["catch"](function (error) {
-        console.error('send getUserInfo error', error);
+      tdClient.getChats(function (result, error) {
+        if (result) {
+          var _loop = function _loop(i) {
+            var chatId = result.chat_ids[i];
+
+            if (isSuperGroupChat(chatId)) {
+              _js_db__WEBPACK_IMPORTED_MODULE_4__["default"].get(chatId, function (err, doc) {
+                if (err) {
+                  _this.getChat(chatId);
+                }
+              });
+            }
+          };
+
+          for (var i = 0; i < result.chat_ids.length; i++) {
+            _loop(i);
+          }
+        }
+      });
+    },
+    getChat: function getChat(chatId) {
+      var _this = this;
+
+      tdClient.getChat(chatId, function (result, error) {
+        if (result) {
+          if (isPublicGroup(result)) {
+            _this.listChats.push(result);
+
+            Object(_js_helpers_database__WEBPACK_IMPORTED_MODULE_1__["saveGroupChat"])(new _models_chat__WEBPACK_IMPORTED_MODULE_5__["default"](result));
+          }
+        }
       });
     }
   }
@@ -53856,7 +53867,80 @@ var render = function() {
     _vm._m(0),
     _vm._v(" "),
     _vm.account
-      ? _c("div", { staticClass: "row" }, [_vm._m(1), _vm._v(" "), _vm._m(2)])
+      ? _c("div", { staticClass: "row" }, [
+          _c("div", { staticClass: "col-4" }, [
+            _c("div", { staticClass: "card text-white bg-dark" }, [
+              _vm._m(1),
+              _vm._v(" "),
+              _c("div", { staticClass: "card-body" }, [
+                _c("p", { staticClass: "card-text" }, [
+                  _c("strong", [_vm._v("Phone: ")]),
+                  _vm._v(_vm._s(_vm.account.phone))
+                ]),
+                _vm._v(" "),
+                _c("p", { staticClass: "card-text" }, [
+                  _c("strong", [_vm._v("Full name: ")]),
+                  _vm._v(
+                    _vm._s(_vm.account.user.first_name) +
+                      " " +
+                      _vm._s(_vm.account.user.last_name)
+                  )
+                ]),
+                _vm._v(" "),
+                _c("p", { staticClass: "card-text" }, [
+                  _c("strong", [_vm._v("Username: ")]),
+                  _vm._v(_vm._s(_vm.account.user.username))
+                ]),
+                _vm._v(" "),
+                _c("p", { staticClass: "card-text" }, [
+                  _c("strong", [_vm._v("Api id: ")]),
+                  _vm._v(_vm._s(_vm.account.apiId))
+                ]),
+                _vm._v(" "),
+                _c("p", { staticClass: "card-text" }, [
+                  _c("strong", [_vm._v("Api hash: ")]),
+                  _vm._v(_vm._s(_vm.account.apiHash))
+                ]),
+                _vm._v(" "),
+                _c("p", { staticClass: "card-text" }, [
+                  _c("strong", [_vm._v("databaseDirectory: ")]),
+                  _vm._v(_vm._s(_vm.account.databaseDirectory))
+                ]),
+                _vm._v(" "),
+                _c("p", { staticClass: "card-text" }, [
+                  _c("strong", [_vm._v("filesDirectory: ")]),
+                  _vm._v(_vm._s(_vm.account.filesDirectory))
+                ])
+              ])
+            ])
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "col-6" }, [
+            _c("div", { staticClass: "card text-white bg-dark" }, [
+              _vm._m(2),
+              _vm._v(" "),
+              _c("div", { staticClass: "card-body" }, [
+                _c("table", { staticClass: "table table-striped table-dark" }, [
+                  _vm._m(3),
+                  _vm._v(" "),
+                  _c(
+                    "tbody",
+                    _vm._l(_vm.listChats, function(chat, index) {
+                      return _c("tr", [
+                        _c("td", [_vm._v(_vm._s(chat.id))]),
+                        _vm._v(" "),
+                        _c("td", [_vm._v(_vm._s(chat.title))]),
+                        _vm._v(" "),
+                        _c("td", [_vm._v(_vm._s(chat.type.supergroup_id))])
+                      ])
+                    }),
+                    0
+                  )
+                ])
+              ])
+            ])
+          ])
+        ])
       : _vm._e()
   ])
 }
@@ -53875,36 +53959,29 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "col-4" }, [
-      _c("div", { staticClass: "card text-white bg-dark" }, [
-        _c("div", { staticClass: "card-header" }, [
-          _c("h5", { staticClass: "card-title m-0" }, [_vm._v("Info")])
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "card-body" }, [
-          _c("p", { staticClass: "card-text" }, [
-            _c("strong", [_vm._v("Total Add: ")]),
-            _vm._v("12345")
-          ])
-        ])
-      ])
+    return _c("div", { staticClass: "card-header" }, [
+      _c("h5", { staticClass: "card-title m-0" }, [_vm._v("INFO")])
     ])
   },
   function() {
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "col-4" }, [
-      _c("table", { staticClass: "table table-striped table-dark" }, [
-        _c("thead", [
-          _c("tr", [
-            _c("th", { attrs: { scope: "col" } }, [_vm._v("Group chat")]),
-            _vm._v(" "),
-            _c("th", { attrs: { scope: "col" } }, [_vm._v("#")])
-          ])
-        ]),
+    return _c("div", { staticClass: "card-header" }, [
+      _c("h5", { staticClass: "card-title m-0" }, [_vm._v("PUBLIC GROUP")])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("thead", [
+      _c("tr", [
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("ID")]),
         _vm._v(" "),
-        _c("tbody", [_c("tr")])
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Chat name")]),
+        _vm._v(" "),
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Group ID")])
       ])
     ])
   }
@@ -70097,14 +70174,14 @@ __webpack_require__.r(__webpack_exports__);
 /**
  *
  * @param account Account
- * @param callBack
+ * @param closers
  * @constructor
  */
 
 function TdWeb(account) {
   var _this = this;
 
-  var callBack = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+  var closers = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
   this.parameters = {
     '@type': 'tdlibParameters',
     use_test_dc: false,
@@ -70131,7 +70208,7 @@ function TdWeb(account) {
   });
 
   this.client.onUpdate = function (update) {
-    console.log('TdWeb:: receive update', update);
+    console.log('TdWeb::class receive update', update);
 
     switch (update['@type']) {
       case 'updateAuthorizationState':
@@ -70152,19 +70229,123 @@ function TdWeb(account) {
         }
     }
 
-    if (callBack != null) {
-      callBack(update);
+    if (closers != null) {
+      closers(update);
     }
   };
+  /**
+   * Send paramters
+   */
+
 
   this.sendParamters = function () {
     this.client.send({
       '@type': 'setTdlibParameters',
       parameters: this.parameters
     }).then(function (result) {
-      console.log('send result', result);
+      console.log('TdWeb::class sendParamters: success', result);
     })["catch"](function (error) {
-      console.error('send error', error);
+      console.error('TdWeb::class sendParamters: error', error);
+    });
+  };
+
+  this.sendPhone = function (phone) {
+    this.client.send({
+      '@type': 'setAuthenticationPhoneNumber',
+      phone_number: phone
+    }).then(function (result) {
+      console.log('TdWeb::class sendPhone: success', result);
+    })["catch"](function (error) {
+      console.error('TdWeb::class sendPhone: error', error);
+    });
+  };
+
+  this.sendCode = function (code) {
+    this.client.send({
+      '@type': 'checkAuthenticationCode',
+      code: code
+    }).then(function (result) {
+      console.log('TdWeb::class sendCode: success', result);
+    })["catch"](function (error) {
+      console.error('TdWeb::class sendCode: error', error);
+    });
+  };
+  /**
+   * Get current user
+   * @param userId
+   * @param callback
+   */
+
+
+  this.getUser = function (userId) {
+    var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    this.client.send({
+      '@type': 'getUser',
+      user_id: userId
+    }).then(function (user) {
+      console.info('TdWeb::class getUser: success', user);
+      if (callback) callback(user, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class getUser: error', error);
+      if (callback) callback(null, error);
+    });
+  };
+  /**
+   * get chats of current user
+   * @param callback
+   */
+
+
+  this.getChats = function () {
+    var callback = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+    this.client.send({
+      '@type': 'getChats',
+      offset_order: '9223372036854775807',
+      offset_chat_id: '0',
+      'limit': 100
+    }).then(function (result) {
+      console.log('TdWeb::class getChats: success', result);
+      if (callback) callback(result, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class getChats: error', error);
+      if (callback) callback(null, error);
+    });
+  };
+
+  this.getChat = function (chatId) {
+    var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    this.client.send({
+      '@type': 'getChat',
+      chat_id: chatId
+    }).then(function (result) {
+      console.log('TdWeb::class getChat result', result);
+      if (callback) callback(result, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class getChat error', error);
+      if (callback) callback(null, error);
+    });
+  };
+  /**
+   * Get group members
+   * @param id
+   * @param offset
+   * @param callback
+   */
+
+
+  this.getGroupMembers = function (id, offset) {
+    var callback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+    this.client.send({
+      '@type': 'getSupergroupMembers',
+      supergroup_id: id,
+      offset: offset,
+      limit: 200
+    }).then(function (result) {
+      console.log('TdWeb::class getGroupMembers: success', result);
+      if (callback) callback(result, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class getChatMembers error', error);
+      if (callback) callback(null, error);
     });
   };
 
@@ -70248,7 +70429,7 @@ var db = new pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__["default"]('telegram_t
 /*!****************************************!*\
   !*** ./resources/js/helpers/common.js ***!
   \****************************************/
-/*! exports provided: isMobile, isIOS, isAndroid, isWindowsPhone, isConnecting, getOSName, getBrowser, isValidPhoneNumber, stringToBoolean */
+/*! exports provided: isMobile, isIOS, isAndroid, isWindowsPhone, isConnecting, getOSName, getBrowser, isValidPhoneNumber, stringToBoolean, isSuperGroupChat, isPublicGroup */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -70262,6 +70443,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getBrowser", function() { return getBrowser; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isValidPhoneNumber", function() { return isValidPhoneNumber; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stringToBoolean", function() { return stringToBoolean; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isSuperGroupChat", function() { return isSuperGroupChat; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isPublicGroup", function() { return isPublicGroup; });
 function isMobile() {
   return isAndroid() || isIOS() || isWindowsPhone();
 }
@@ -70399,6 +70582,46 @@ function stringToBoolean(string) {
       return Boolean(string);
   }
 }
+function isSuperGroupChat(chatId) {
+  return chatId < -1000000000;
+}
+function isPublicGroup(chat) {
+  if (chat && chat.hasOwnProperty('type') && chat.type['@type'] === 'chatTypeSupergroup' && !chat.type.is_channel) {
+    return true;
+  }
+
+  return false;
+}
+
+/***/ }),
+
+/***/ "./resources/js/helpers/database.js":
+/*!******************************************!*\
+  !*** ./resources/js/helpers/database.js ***!
+  \******************************************/
+/*! exports provided: saveAccount, saveGroupChat */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "saveAccount", function() { return saveAccount; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "saveGroupChat", function() { return saveGroupChat; });
+/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
+
+function saveAccount(account) {
+  _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].put(account).then(function (response) {
+    console.log('Database: saveAccount:: success', response);
+  })["catch"](function (err) {
+    console.log('Database: saveAccount:: error', err);
+  });
+}
+function saveGroupChat(chat) {
+  _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].put(chat).then(function (response) {
+    console.log('Database: saveGroupChat:: success', response);
+  })["catch"](function (err) {
+    console.log('Database: saveGroupChat:: error', err);
+  });
+}
 
 /***/ }),
 
@@ -70425,6 +70648,23 @@ function Account(phone) {
   this.databaseDirectory = '/acc/' + phone + '/db';
   this.filesDirectory = '/' + phone + '/files';
   return this;
+}
+
+/***/ }),
+
+/***/ "./resources/js/models/chat.js":
+/*!*************************************!*\
+  !*** ./resources/js/models/chat.js ***!
+  \*************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return GroupChat; });
+function GroupChat(chat) {
+  this._id = chat.id;
+  this.chat = chat;
 }
 
 /***/ }),
@@ -70473,11 +70713,13 @@ var router = new vue_router__WEBPACK_IMPORTED_MODULE_1__["default"]({
     name: 'join-group',
     component: _js_views_JoinGroup__WEBPACK_IMPORTED_MODULE_5__["default"]
   }, {
-    path: '/profile/:phone',
+    path: '/profile/',
     name: 'profile',
     component: _js_views_AccountProfile__WEBPACK_IMPORTED_MODULE_6__["default"],
-    props: {
-      "default": true
+    props: function props(route) {
+      return {
+        query: route.query.phone
+      };
     }
   }]
 });

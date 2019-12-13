@@ -51,7 +51,7 @@
                 this.$router.push('login')
             },
             gotoProfile(phone) {
-                this.$router.push({ name: 'profile', params: { phone: phone } })
+                this.$router.push({ name: 'profile', query: { phone: phone } })
             },
             getAcounts() {
                 const _this = this;

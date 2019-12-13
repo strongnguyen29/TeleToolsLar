@@ -9,66 +9,79 @@
             <div class="col-4">
                 <div class="card text-white bg-dark">
                     <div class="card-header">
-                        <h5 class="card-title m-0">Info</h5>
+                        <h5 class="card-title m-0">INFO</h5>
                     </div>
                     <div class="card-body">
-                        <p class="card-text"><strong>Total Add: </strong>12345</p>
+                        <p class="card-text"><strong>Phone: </strong>{{ account.phone}}</p>
+                        <p class="card-text"><strong>Full name: </strong>{{ account.user.first_name }} {{ account.user.last_name }}</p>
+                        <p class="card-text"><strong>Username: </strong>{{ account.user.username}}</p>
+                        <p class="card-text"><strong>Api id: </strong>{{ account.apiId}}</p>
+                        <p class="card-text"><strong>Api hash: </strong>{{ account.apiHash}}</p>
+                        <p class="card-text"><strong>databaseDirectory: </strong>{{ account.databaseDirectory}}</p>
+                        <p class="card-text"><strong>filesDirectory: </strong>{{ account.filesDirectory}}</p>
                     </div>
                 </div>
             </div>
-            <div class="col-4">
-                <table class="table table-striped table-dark">
-                    <thead>
-                    <tr>
-                        <th scope="col">Group chat</th>
-                        <th scope="col">#</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-
-                    </tr>
-                    </tbody>
-                </table>
+            <div class="col-6">
+                <div class="card text-white bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title m-0">PUBLIC GROUP</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped table-dark">
+                            <thead>
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Chat name</th>
+                                <th scope="col">Group ID</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr v-for="(chat, index) in listChats">
+                                <td>{{ chat.id}}</td>
+                                <td>{{ chat.title}}</td>
+                                <td>{{ chat.type.supergroup_id}}</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script>
+    import {isPublicGroup, isSuperGroupChat} from '~/js/helpers/common'
     import Db from '~/js/db'
     import TdWeb from "~/js/TdWeb";
-
+    let tdClient;
+    
     export default {
         name: "AccountProfile",
         props: ['phone'],
         data: function () {
             return {
-                tdClient: null,
                 account: null,
                 listChats: [],
                 error: null
             }
         },
         beforeRouteEnter (to, from, next) {
-            Db.get(to.params.phone, function(err, doc) {
-                console.log('beforeRouteEnter::', doc);
-                next(vm => vm.setData(err, doc))
+            Db.get(to.query.phone, function (err, account) {
+                next(vm => vm.setData(err, account))
             });
         },
         methods: {
             setTdClient() {
-                console.log('setTdClient:: ');
+                console.log('setTdClient');
                 const _this = this;
-                this.tdClient = new TdWeb(this.account, function (update) {
+                tdClient = new TdWeb(_this.account, function (update) {
                     switch (update['@type']) {
                         case 'updateAuthorizationState': {
                             switch (update.authorization_state['@type']) {
                                 case 'authorizationStateReady':
                                     _this.getChats();
-                                    break;
-                                case 'authorizationStateClosed':
-                                    //_this.setTdClient();
                                     break;
                             }
                         }
@@ -76,31 +89,27 @@
                 })
             },
             getChats() {
-                this.tdClient.client.send({
-                    '@type': 'getChats',
-                    offset_order: '9223372036854775807',
-                    offset_chat_id: '0',
-                    'limit': 100
-                }).then(result => {
-                    console.log('send getChats result', result);
-                    for (let i = 0; i < result.chat_ids.length; i++) {
-                        if (result.chat_ids[i] < -1000000000) {
-                            this.getChat(result.chat_ids[i]);
+                const _this = this;
+                tdClient.getChats(function (result, error) {
+                    if (result) {
+                        for (let i = 0; i < result.chat_ids.length; i++) {
+                            let chatId = result.chat_ids[i];
+
+                            if (isSuperGroupChat(chatId)) {
+                                _this.getChat(chatId);
+                            }
                         }
                     }
-                }).catch(error => {
-                    console.error('send getChats error', error);
                 });
             },
             getChat(chatId) {
-                this.tdClient.client.send({
-                    '@type': 'getChat',
-                    chat_id: chatId
-                }).then(result => {
-                    console.log('send getChat result', result);
-                    this.listChats.push(result);
-                }).catch(error => {
-                    console.error('send getChat error', error);
+                const _this = this;
+                tdClient.getChat(chatId, function (result, error) {
+                    if (result) {
+                        if (isPublicGroup(result)) {
+                            _this.listChats.push(result);
+                        }
+                    }
                 });
             },
             setData (err, account) {
@@ -109,7 +118,7 @@
                 if (err) {
                     this.error = err.toString()
                 } else {
-                    this.account = account
+                    this.account = account;
                     this.setTdClient();
                 }
             }
