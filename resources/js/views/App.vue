@@ -14,6 +14,9 @@
                     <li class="nav-item" :class="[currentPage.includes('join-group') ? activeClass : '']">
                         <router-link :to="{ name: 'join-group' }" class="nav-link">Join group</router-link>
                     </li>
+                    <li class="nav-item" :class="[currentPage.includes('login') ? activeClass : '']">
+                        <router-link :to="{ name: 'login' }" class="nav-link">Login</router-link>
+                    </li>
                 </ul>
             </div>
         </nav><!-- End nav -->

@@ -52,12 +52,10 @@
 
 <script>
 
-    import {isValidPhoneNumber} from '~/js/helpers/common'
-    import {saveAccount, saveGroupChat} from '~/js/helpers/database'
+    import {isValidPhoneNumber, isSuperGroupChat, isPublicGroup} from '~/js/helpers/common'
+    import {createAccount, getAccount} from '~/js/databases/db_account'
     import TdClient from '~/js/TdWeb'
-    import Account from "../models/account";
-    import Db from '~/js/db'
-    import GroupChat from "../models/chat";
+    import Account from "~/js/models/account";
 
     let tdClient;
 
@@ -81,9 +79,10 @@
                 }
                 const _this = this;
 
-                Db.get(this.phoneNumber)
-                    .then(function (doc) {
-                        console.log(doc);
+                getAccount(this.phoneNumber, function (err, account) {
+                    if (err) {
+                        _this.account = new Account(_this.phoneNumber, _this.apiId, _this.apiHash);
+                    } else {
                         _this.account = doc;
                         if (_this.apiId.length > 1) {
                             _this.account.apiId = _this.apiId;
@@ -91,12 +90,9 @@
                         if (_this.apiHash.length > 1) {
                             _this.account.apiHash = _this.apiHash;
                         }
-                        _this.tdClientInit();
-                    }).catch(function (err) {
-                        console.log(err);
-                        _this.account = new Account(_this.phoneNumber, _this.apiId, _this.apiHash);
-                        _this.tdClientInit();
-                    });
+                    }
+                    _this.tdClientInit();
+                });
             },
             tdClientInit() {
                 const _this = this;
@@ -115,7 +111,6 @@
 
                                 case 'authorizationStateReady':
                                     _this.loginState = 'login-done';
-                                    _this.getChats();
                                     break;
                             }
                             break;
@@ -127,7 +122,8 @@
                                 tdClient.getUser(update.value.value, function (user, error) {
                                     if (user) {
                                         _this.account.user = user;
-                                        saveAccount(_this.account);
+                                        createAccount(_this.account);
+                                        _this.gotoProfile(_this.phoneNumber);
                                     }
                                 })
                             }
@@ -139,35 +135,8 @@
             sendCode() {
                 tdClient.sendCode(this.codeActive);
             },
-            getChats() {
-                const _this = this;
-                tdClient.getChats(function (result, error) {
-                    if (result) {
-                        for (let i = 0; i < result.chat_ids.length; i++) {
-                            let chatId = result.chat_ids[i];
-
-                            if (isSuperGroupChat(chatId)) {
-                                
-                                Db.get(chatId, function (err, doc) {
-                                    if (err) {
-                                        _this.getChat(chatId);
-                                    }
-                                });
-                            }
-                        }
-                    }
-                });
-            },
-            getChat(chatId) {
-                const _this = this;
-                tdClient.getChat(chatId, function (result, error) {
-                    if (result) {
-                        if (isPublicGroup(result)) {
-                            _this.listChats.push(result);
-                            saveGroupChat(new GroupChat(result))
-                        }
-                    }
-                });
+            gotoProfile(phone) {
+                this.$router.push({ name: 'profile', query: { phone: phone } })
             }
         }
     }

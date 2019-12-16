@@ -1869,8 +1869,10 @@ module.exports = {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _js_helpers_common__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/helpers/common */ "./resources/js/helpers/common.js");
-/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
-/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+/* harmony import */ var _databases_db_account__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../databases/db_account */ "./resources/js/databases/db_account.js");
+/* harmony import */ var _databases_db_groupchat__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../databases/db_groupchat */ "./resources/js/databases/db_groupchat.js");
+/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+/* harmony import */ var _js_models_chat__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ~/js/models/chat */ "./resources/js/models/chat.js");
 //
 //
 //
@@ -1924,6 +1926,8 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+
+
 
 
 
@@ -1939,7 +1943,7 @@ var tdClient;
     };
   },
   beforeRouteEnter: function beforeRouteEnter(to, from, next) {
-    _js_db__WEBPACK_IMPORTED_MODULE_1__["default"].get(to.query.phone, function (err, account) {
+    Object(_databases_db_account__WEBPACK_IMPORTED_MODULE_1__["getAccount"])(to.query.phone, function (err, account) {
       next(function (vm) {
         return vm.setData(err, account);
       });
@@ -1951,7 +1955,7 @@ var tdClient;
 
       var _this = this;
 
-      tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__["default"](_this.account, function (update) {
+      tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_3__["default"](_this.account, function (update) {
         switch (update['@type']) {
           case 'updateAuthorizationState':
             {
@@ -1987,6 +1991,8 @@ var tdClient;
         if (result) {
           if (Object(_js_helpers_common__WEBPACK_IMPORTED_MODULE_0__["isPublicGroup"])(result)) {
             _this.listChats.push(result);
+
+            Object(_databases_db_groupchat__WEBPACK_IMPORTED_MODULE_2__["createOrUpdateGroupChat"])(new _js_models_chat__WEBPACK_IMPORTED_MODULE_4__["default"](result));
           }
         }
       });
@@ -2159,6 +2165,9 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: "App",
   data: function data() {
@@ -2185,7 +2194,7 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
+/* harmony import */ var _databases_db_account__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../databases/db_account */ "./resources/js/databases/db_account.js");
 //
 //
 //
@@ -2230,7 +2239,7 @@ __webpack_require__.r(__webpack_exports__);
     };
   },
   created: function created() {
-    this.getAcounts();
+    this.getAccounts();
   },
   methods: {
     gotoLogin: function gotoLogin() {
@@ -2244,16 +2253,16 @@ __webpack_require__.r(__webpack_exports__);
         }
       });
     },
-    getAcounts: function getAcounts() {
+    getAccounts: function getAccounts() {
       var _this = this;
 
-      _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].allDocs({
-        include_docs: true
-      }).then(function (docs) {
-        console.log(docs);
+      Object(_databases_db_account__WEBPACK_IMPORTED_MODULE_0__["getAccounts"])(function (err, docs) {
+        if (err) {
+          console.log('getAcounts: ', err);
+          return;
+        }
+
         _this.listAccounts = docs;
-      })["catch"](function (err) {
-        console.log(err);
       });
     },
     getPhone: function getPhone(account) {
@@ -2291,8 +2300,9 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
-/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+/* harmony import */ var _databases_db_account__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../databases/db_account */ "./resources/js/databases/db_account.js");
+/* harmony import */ var _databases_db_groupchat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../databases/db_groupchat */ "./resources/js/databases/db_groupchat.js");
+/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
 //
 //
 //
@@ -2335,24 +2345,51 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: "JoinGroup",
   data: function data() {
     return {
+      tdClient: null,
       listAccounts: [],
       selectAccounts: [],
-      inviteLink: '',
-      tdClient: null,
-      results: [],
-      isProcessing: false
+      allSelected: false,
+      listChats: [],
+      chat_id: null,
+      isProcessing: false,
+      toast_show: false,
+      toast_msg: ''
     };
   },
   created: function created() {
-    this.getAcounts();
+    this.getDatas();
   },
   methods: {
+    getDatas: function getDatas() {
+      var _this = this;
+
+      Object(_databases_db_groupchat__WEBPACK_IMPORTED_MODULE_1__["getGroupChats"])(function (err, docs) {
+        if (docs) {
+          _this.listChats = docs.rows;
+        }
+      });
+      Object(_databases_db_account__WEBPACK_IMPORTED_MODULE_0__["getAccounts"])(function (err, docs) {
+        if (docs) {
+          _this.listAccounts = docs.rows;
+        }
+      });
+    },
     getFullName: function getFullName(account) {
       if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('user')) {
         return account.doc.user.first_name + ' ' + account.doc.user.last_name;
@@ -2360,56 +2397,41 @@ __webpack_require__.r(__webpack_exports__);
 
       return 'Empty!';
     },
-    getAcounts: function getAcounts() {
-      var _this = this;
-
-      _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].allDocs({
-        include_docs: true
-      }).then(function (docs) {
-        console.log(docs);
-        _this.listAccounts = docs.rows;
-      })["catch"](function (err) {
-        console.log(err);
-      });
-    },
     joinGroup: function joinGroup() {
       var isAll = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-
-      if (this.inviteLink === null || this.inviteLink.length === 0) {
-        alert('Link error!');
-        return;
-      }
-
       this.isProcessing = true;
 
       if (isAll) {
         for (var i = 0; i < this.listAccounts.length; i++) {
-          this.setTdClient(this.listAccounts[i]);
+          this.setTdClient(this.listAccounts[i].doc);
         }
       } else {
         for (var _i = 0; _i < this.selectAccounts.length; _i++) {
-          this.setTdClient(this.listAccounts[this.selectAccounts[_i]]);
+          this.setTdClient(this.listAccounts[this.selectAccounts[_i]].doc);
         }
       }
     },
     setTdClient: function setTdClient(account) {
-      console.log(account);
+      console.log('setTdClient', account);
 
       var _this = this;
 
-      _this.tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__["default"](account, function (update) {
+      this.tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__["default"](account, function (update) {
         switch (update['@type']) {
           case 'updateAuthorizationState':
             {
               switch (update.authorization_state['@type']) {
                 case 'authorizationStateReady':
-                  _this.tdClient.send({
-                    '@type': 'joinChatByInviteLink',
-                    invite_link: _this.inviteLink
-                  }).then(function (result) {
-                    console.log('send joinChatByInviteLink result', result);
-                  })["catch"](function (error) {
-                    console.error('send joinChatByInviteLink error', error);
+                  _this.tdClient.getChat(_this.chat_id, function (result, err) {});
+
+                  _this.tdClient.joinChat(_this.chat_id, function (result, err) {
+                    _this.toast_show = true;
+
+                    if (err != null) {
+                      _this.toast_msg = _this.getFullName(account) + ' join group FAILED';
+                    } else {
+                      _this.toast_msg = _this.getFullName(account) + ' join group SUCCESS';
+                    }
                   });
 
                   break;
@@ -2417,6 +2439,18 @@ __webpack_require__.r(__webpack_exports__);
             }
         }
       });
+    },
+    selectAll: function selectAll() {
+      this.selectAccounts = [];
+
+      if (this.allSelected) {
+        for (account in this.listAccounts) {
+          this.selectAccounts.push(this.users[user].id.toString());
+        }
+      }
+    },
+    select: function select() {
+      this.allSelected = false;
     }
   }
 });
@@ -2433,11 +2467,9 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _js_helpers_common__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/helpers/common */ "./resources/js/helpers/common.js");
-/* harmony import */ var _js_helpers_database__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/helpers/database */ "./resources/js/helpers/database.js");
+/* harmony import */ var _js_databases_db_account__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/databases/db_account */ "./resources/js/databases/db_account.js");
 /* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
-/* harmony import */ var _models_account__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../models/account */ "./resources/js/models/account.js");
-/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
-/* harmony import */ var _models_chat__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../models/chat */ "./resources/js/models/chat.js");
+/* harmony import */ var _js_models_account__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ~/js/models/account */ "./resources/js/models/account.js");
 //
 //
 //
@@ -2490,8 +2522,6 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-
-
 
 
 
@@ -2518,22 +2548,20 @@ var tdClient;
 
       var _this = this;
 
-      _js_db__WEBPACK_IMPORTED_MODULE_4__["default"].get(this.phoneNumber).then(function (doc) {
-        console.log(doc);
-        _this.account = doc;
+      Object(_js_databases_db_account__WEBPACK_IMPORTED_MODULE_1__["getAccount"])(this.phoneNumber, function (err, account) {
+        if (err) {
+          _this.account = new _js_models_account__WEBPACK_IMPORTED_MODULE_3__["default"](_this.phoneNumber, _this.apiId, _this.apiHash);
+        } else {
+          _this.account = doc;
 
-        if (_this.apiId.length > 1) {
-          _this.account.apiId = _this.apiId;
+          if (_this.apiId.length > 1) {
+            _this.account.apiId = _this.apiId;
+          }
+
+          if (_this.apiHash.length > 1) {
+            _this.account.apiHash = _this.apiHash;
+          }
         }
-
-        if (_this.apiHash.length > 1) {
-          _this.account.apiHash = _this.apiHash;
-        }
-
-        _this.tdClientInit();
-      })["catch"](function (err) {
-        console.log(err);
-        _this.account = new _models_account__WEBPACK_IMPORTED_MODULE_3__["default"](_this.phoneNumber, _this.apiId, _this.apiHash);
 
         _this.tdClientInit();
       });
@@ -2556,9 +2584,6 @@ var tdClient;
 
                 case 'authorizationStateReady':
                   _this.loginState = 'login-done';
-
-                  _this.getChats();
-
                   break;
               }
 
@@ -2571,7 +2596,9 @@ var tdClient;
                 tdClient.getUser(update.value.value, function (user, error) {
                   if (user) {
                     _this.account.user = user;
-                    Object(_js_helpers_database__WEBPACK_IMPORTED_MODULE_1__["saveAccount"])(_this.account);
+                    Object(_js_databases_db_account__WEBPACK_IMPORTED_MODULE_1__["createAccount"])(_this.account);
+
+                    _this.gotoProfile(_this.phoneNumber);
                   }
                 });
               }
@@ -2582,39 +2609,11 @@ var tdClient;
     sendCode: function sendCode() {
       tdClient.sendCode(this.codeActive);
     },
-    getChats: function getChats() {
-      var _this = this;
-
-      tdClient.getChats(function (result, error) {
-        if (result) {
-          var _loop = function _loop(i) {
-            var chatId = result.chat_ids[i];
-
-            if (isSuperGroupChat(chatId)) {
-              _js_db__WEBPACK_IMPORTED_MODULE_4__["default"].get(chatId, function (err, doc) {
-                if (err) {
-                  _this.getChat(chatId);
-                }
-              });
-            }
-          };
-
-          for (var i = 0; i < result.chat_ids.length; i++) {
-            _loop(i);
-          }
-        }
-      });
-    },
-    getChat: function getChat(chatId) {
-      var _this = this;
-
-      tdClient.getChat(chatId, function (result, error) {
-        if (result) {
-          if (isPublicGroup(result)) {
-            _this.listChats.push(result);
-
-            Object(_js_helpers_database__WEBPACK_IMPORTED_MODULE_1__["saveGroupChat"])(new _models_chat__WEBPACK_IMPORTED_MODULE_5__["default"](result));
-          }
+    gotoProfile: function gotoProfile(phone) {
+      this.$router.push({
+        name: 'profile',
+        query: {
+          phone: phone
         }
       });
     }
@@ -54378,6 +54377,27 @@ var render = function() {
                   )
                 ],
                 1
+              ),
+              _vm._v(" "),
+              _c(
+                "li",
+                {
+                  staticClass: "nav-item",
+                  class: [
+                    _vm.currentPage.includes("login") ? _vm.activeClass : ""
+                  ]
+                },
+                [
+                  _c(
+                    "router-link",
+                    {
+                      staticClass: "nav-link",
+                      attrs: { to: { name: "login" } }
+                    },
+                    [_vm._v("Login")]
+                  )
+                ],
+                1
               )
             ])
           ]
@@ -54514,35 +54534,50 @@ var render = function() {
     _c("div", { staticClass: "row mt-4" }, [
       _c("div", { staticClass: "col-4" }, [
         _c("div", { staticClass: "form-group" }, [
-          _c("label", { attrs: { for: "inviteLink" } }, [
-            _vm._v("Group Invite Link")
-          ]),
+          _c("label", { attrs: { for: "groupChat" } }, [_vm._v("Group chat")]),
           _vm._v(" "),
-          _c("input", {
-            directives: [
-              {
-                name: "model",
-                rawName: "v-model",
-                value: _vm.inviteLink,
-                expression: "inviteLink"
-              }
-            ],
-            staticClass: "form-control",
-            attrs: {
-              type: "url",
-              id: "inviteLink",
-              placeholder: "Invite link..."
-            },
-            domProps: { value: _vm.inviteLink },
-            on: {
-              input: function($event) {
-                if ($event.target.composing) {
-                  return
+          _c(
+            "select",
+            {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.chat_id,
+                  expression: "chat_id"
                 }
-                _vm.inviteLink = $event.target.value
+              ],
+              staticClass: "form-control",
+              attrs: { id: "groupChat" },
+              on: {
+                change: function($event) {
+                  var $$selectedVal = Array.prototype.filter
+                    .call($event.target.options, function(o) {
+                      return o.selected
+                    })
+                    .map(function(o) {
+                      var val = "_value" in o ? o._value : o.value
+                      return val
+                    })
+                  _vm.chat_id = $event.target.multiple
+                    ? $$selectedVal
+                    : $$selectedVal[0]
+                }
               }
-            }
-          })
+            },
+            _vm._l(_vm.listChats, function(chat) {
+              return _c("option", { domProps: { value: chat.doc.chat.id } }, [
+                _vm._v(
+                  "\n                        " +
+                    _vm._s(chat.doc.chat.title) +
+                    " (" +
+                    _vm._s(chat.doc.chat.id) +
+                    ")\n                    "
+                )
+              ])
+            }),
+            0
+          )
         ]),
         _vm._v(" "),
         _c("div", { staticClass: "form-group" }, [
@@ -54629,26 +54664,42 @@ var render = function() {
                   )
                 ]),
                 _vm._v(" "),
-                _c("td", [_vm._v(_vm._s(_vm.getFullName(account)))]),
-                _vm._v(" "),
-                _c("td", [
-                  _vm._v(
-                    _vm._s(
-                      account.hasOwnProperty("added")
-                        ? account.added
-                        : _vm.isProcessing
-                        ? "processing..."
-                        : "--"
-                    )
-                  )
-                ])
+                _c("td", [_vm._v(_vm._s(_vm.getFullName(account)))])
               ])
             }),
             0
           )
         ])
       ])
-    ])
+    ]),
+    _vm._v(" "),
+    _vm.toast_show
+      ? _c(
+          "div",
+          {
+            staticStyle: { position: "relative", "min-height": "200px" },
+            attrs: { "aria-live": "polite", "aria-atomic": "true" }
+          },
+          [
+            _c(
+              "div",
+              {
+                staticClass: "toast",
+                staticStyle: { position: "absolute", top: "0", right: "0" }
+              },
+              [
+                _c("div", { staticClass: "toast-body" }, [
+                  _vm._v(
+                    "\n                " +
+                      _vm._s(_vm.toast_msg) +
+                      "\n            "
+                  )
+                ])
+              ]
+            )
+          ]
+        )
+      : _vm._e()
   ])
 }
 var staticRenderFns = [
@@ -54672,9 +54723,7 @@ var staticRenderFns = [
         _vm._v(" "),
         _c("th", { attrs: { scope: "col" } }, [_vm._v("Phone")]),
         _vm._v(" "),
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("Name")]),
-        _vm._v(" "),
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("Status")])
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Name")])
       ])
     ])
   }
@@ -70349,6 +70398,38 @@ function TdWeb(account) {
     });
   };
 
+  this.addChatMember = function (chatId, userId) {
+    var callback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+    this.client.send({
+      '@type': 'addChatMember',
+      chat_id: chatId,
+      user_id: userId,
+      forward_limit: 1
+    }).then(function (result) {
+      console.log('TdWeb::class send addChatMember result', result);
+      if (callback) callback(result, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class send addChatMember error', error);
+      if (callback) callback(null, error);
+    });
+  };
+
+  this.joinChat = function (chatId) {
+    var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    var params = {
+      '@type': 'joinChat',
+      chat_id: chatId
+    };
+    console.log('joinChat data', params);
+    this.client.send(params).then(function (result) {
+      console.log('TdWeb::class send joinChat result', result);
+      if (callback) callback(result, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class send joinChat error', error);
+      if (callback) callback(null, error);
+    });
+  };
+
   return this;
 }
 
@@ -70409,18 +70490,101 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 /***/ }),
 
-/***/ "./resources/js/db.js":
-/*!****************************!*\
-  !*** ./resources/js/db.js ***!
-  \****************************/
-/*! exports provided: default */
+/***/ "./resources/js/databases/db_account.js":
+/*!**********************************************!*\
+  !*** ./resources/js/databases/db_account.js ***!
+  \**********************************************/
+/*! exports provided: getAccounts, getAccount, createAccount, createOrUpdateAccount, default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getAccounts", function() { return getAccounts; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getAccount", function() { return getAccount; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createAccount", function() { return createAccount; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createOrUpdateAccount", function() { return createOrUpdateAccount; });
 /* harmony import */ var pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pouchdb-browser */ "./node_modules/pouchdb-browser/lib/index.es.js");
 
-var db = new pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__["default"]('telegram_tools');
+var db = new pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__["default"]('telegram_account');
+function getAccounts(callback) {
+  db.allDocs({
+    include_docs: true
+  }, function (err, docs) {
+    console.log('DB:: getAccounts', err ? err : docs);
+    callback(err, docs);
+  });
+}
+function getAccount(phone, callback) {
+  db.get('acc-' + phone, function (err, doc) {
+    console.log('DB: getAccount:', err ? err : doc);
+    callback(err, doc);
+  });
+}
+function createAccount(account) {
+  db.put(account, function (err, doc) {
+    console.log('DB: createAccount:', err ? err : doc);
+  });
+}
+function createOrUpdateAccount(account) {
+  db.get(account._id, function (err, doc) {
+    if (err) {
+      createAccount(account);
+    } else {
+      account._rev = doc._rev;
+      db.put(account, function (err, response) {
+        if (err) {
+          console.log('DB:: update: failed', err);
+        } else {
+          console.log('DB:: update: success', response);
+        }
+      });
+    }
+  });
+}
+/* harmony default export */ __webpack_exports__["default"] = (db);
+
+/***/ }),
+
+/***/ "./resources/js/databases/db_groupchat.js":
+/*!************************************************!*\
+  !*** ./resources/js/databases/db_groupchat.js ***!
+  \************************************************/
+/*! exports provided: getGroupChats, createGroupChat, createOrUpdateGroupChat, default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getGroupChats", function() { return getGroupChats; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createGroupChat", function() { return createGroupChat; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createOrUpdateGroupChat", function() { return createOrUpdateGroupChat; });
+/* harmony import */ var pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pouchdb-browser */ "./node_modules/pouchdb-browser/lib/index.es.js");
+
+var db = new pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__["default"]('telegram_groupchat');
+function getGroupChats(callback) {
+  db.allDocs({
+    include_docs: true
+  }, function (err, docs) {
+    console.log('DB:: getGroupChats', err ? err : docs);
+    callback(err, docs);
+  });
+}
+function createGroupChat(chat) {
+  db.put(chat, function (err, doc) {
+    console.log('DB:: createGroupChat', err ? err : doc);
+  });
+}
+function createOrUpdateGroupChat(chat) {
+  db.get(chat._id, function (err, doc) {
+    if (err) {
+      createGroupChat(chat);
+    } else {
+      chat._rev = doc._rev;
+      db.put(chat, function (err, response) {
+        console.log('DB:: update GroupChat', err ? err : response);
+      });
+    }
+  });
+}
 /* harmony default export */ __webpack_exports__["default"] = (db);
 
 /***/ }),
@@ -70595,36 +70759,6 @@ function isPublicGroup(chat) {
 
 /***/ }),
 
-/***/ "./resources/js/helpers/database.js":
-/*!******************************************!*\
-  !*** ./resources/js/helpers/database.js ***!
-  \******************************************/
-/*! exports provided: saveAccount, saveGroupChat */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "saveAccount", function() { return saveAccount; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "saveGroupChat", function() { return saveGroupChat; });
-/* harmony import */ var _js_db__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ~/js/db */ "./resources/js/db.js");
-
-function saveAccount(account) {
-  _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].put(account).then(function (response) {
-    console.log('Database: saveAccount:: success', response);
-  })["catch"](function (err) {
-    console.log('Database: saveAccount:: error', err);
-  });
-}
-function saveGroupChat(chat) {
-  _js_db__WEBPACK_IMPORTED_MODULE_0__["default"].put(chat).then(function (response) {
-    console.log('Database: saveGroupChat:: success', response);
-  })["catch"](function (err) {
-    console.log('Database: saveGroupChat:: error', err);
-  });
-}
-
-/***/ }),
-
 /***/ "./resources/js/models/account.js":
 /*!****************************************!*\
   !*** ./resources/js/models/account.js ***!
@@ -70640,7 +70774,7 @@ __webpack_require__.r(__webpack_exports__);
 function Account(phone) {
   var apiId = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
   var apiHash = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
-  this._id = phone;
+  this._id = 'acc-' + phone;
   this.phone = phone;
   this.user = null;
   this.apiId = apiId;
@@ -70656,16 +70790,18 @@ function Account(phone) {
 /*!*************************************!*\
   !*** ./resources/js/models/chat.js ***!
   \*************************************/
-/*! exports provided: default */
+/*! exports provided: default, getGroupChat */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return GroupChat; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getGroupChat", function() { return getGroupChat; });
 function GroupChat(chat) {
-  this._id = chat.id;
+  this._id = 'gc' + chat.id;
   this.chat = chat;
 }
+function getGroupChat() {}
 
 /***/ }),
 

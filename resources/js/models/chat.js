@@ -1,5 +1,10 @@
 
 export default function GroupChat(chat) {
-    this._id = chat.id;
+    this._id = 'gc' + chat.id;
     this.chat = chat;
+}
+
+export function getGroupChat() {
+
+
 }

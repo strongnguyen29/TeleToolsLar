@@ -34,7 +34,7 @@
 </template>
 
 <script>
-    import Db from '~/js/db'
+    import {getAccounts} from '../databases/db_account'
 
     export default {
         name: "Home",
@@ -44,7 +44,7 @@
             }
         },
         created() {
-            this.getAcounts();
+            this.getAccounts();
         },
         methods:{
             gotoLogin() {
@@ -53,16 +53,15 @@
             gotoProfile(phone) {
                 this.$router.push({ name: 'profile', query: { phone: phone } })
             },
-            getAcounts() {
+            getAccounts() {
                 const _this = this;
-                Db.allDocs({include_docs: true})
-                    .then(function (docs) {
-                        console.log(docs);
-                        _this.listAccounts = docs;
-                    })
-                    .catch(function (err) {
-                        console.log(err)
-                    })
+                getAccounts(function (err, docs) {
+                    if (err) {
+                        console.log('getAcounts: ', err);
+                        return;
+                    }
+                    _this.listAccounts = docs;
+                })
             },
             getPhone: function (account) {
                 if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('phone')) {

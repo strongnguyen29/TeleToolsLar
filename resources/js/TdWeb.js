@@ -52,6 +52,7 @@ export default function TdWeb(account, closers = null) {
                 }
             }
         }
+
         if (closers != null) {
             closers(update)
         }
@@ -165,6 +166,38 @@ export default function TdWeb(account, closers = null) {
             console.error('TdWeb::class getChatMembers error', error);
             if (callback) callback(null, error);
         });
+    };
+
+    this.addChatMember = function (chatId, userId, callback = null) {
+        this.client.send({
+            '@type': 'addChatMember',
+            chat_id: chatId,
+            user_id: userId,
+            forward_limit: 1
+        }).then(result => {
+            console.log('TdWeb::class send addChatMember result', result);
+            if (callback) callback(result, null);
+        }).catch(error => {
+            console.error('TdWeb::class send addChatMember error', error);
+            if (callback) callback(null, error);
+        });
+    };
+
+    this.joinChat = function (chatId, callback = null) {
+        let params = {
+            '@type': 'joinChat',
+            chat_id: chatId
+        };
+        console.log('joinChat data', params);
+
+        this.client.send(params)
+            .then(result => {
+                console.log('TdWeb::class send joinChat result', result);
+                if (callback) callback(result, null);
+            }).catch(error => {
+                console.error('TdWeb::class send joinChat error', error);
+                if (callback) callback(null, error);
+            });
     };
 
     return this;

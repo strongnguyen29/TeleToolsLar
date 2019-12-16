@@ -8,8 +8,12 @@
         <div class="row mt-4">
             <div class="col-4">
                 <div class="form-group">
-                    <label for="inviteLink">Group Invite Link</label>
-                    <input v-model="inviteLink" type="url" class="form-control" id="inviteLink" placeholder="Invite link...">
+                    <label for="groupChat">Group chat</label>
+                    <select class="form-control" id="groupChat" v-model="chat_id">
+                        <option v-for="chat in  listChats" :value="chat.doc.chat.id">
+                            {{ chat.doc.chat.title }} ({{ chat.doc.chat.id }})
+                        </option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <button type="submit" class="btn btn-primary" v-on:click="joinGroup">Join</button>
@@ -23,7 +27,6 @@
                         <th scope="col">#</th>
                         <th scope="col">Phone</th>
                         <th scope="col">Name</th>
-                        <th scope="col">Status</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -31,17 +34,24 @@
                         <th><input type="checkbox" :value="index" :id="'account_' + index" v-model="selectAccounts"></th>
                         <td><label :for="'account_' + index" class="m-0">{{ account.doc.phone }}</label></td>
                         <td>{{ getFullName(account) }}</td>
-                        <td>{{ account.hasOwnProperty('added') ? account.added : isProcessing ? 'processing...' : '--'}}</td>
                     </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+        <div v-if="toast_show" aria-live="polite" aria-atomic="true" style="position: relative; min-height: 200px;">
+            <div class="toast" style="position: absolute; top: 0; right: 0;">
+                <div class="toast-body">
+                    {{ toast_msg }}
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script>
-    import Db from '~/js/db'
+    import {getAccounts} from "../databases/db_account";
+    import {getGroupChats} from "../databases/db_groupchat";
     import TdClient from '~/js/TdWeb'
 
     export default {
@@ -49,59 +59,60 @@
         data: function () {
 
             return {
+                tdClient: null,
                 listAccounts: [],
                 selectAccounts: [],
-                inviteLink: '',
-                tdClient: null,
-                results: [],
-                isProcessing: false
+                allSelected: false,
+                listChats: [],
+                chat_id: null,
+                isProcessing: false,
+                toast_show: false,
+                toast_msg: ''
             }
         },
         created() {
-            this.getAcounts();
+            this.getDatas();
         },
         methods: {
+            getDatas() {
+                const _this = this;
+                getGroupChats(function (err, docs) {
+                    if (docs) {
+                        _this.listChats = docs.rows;
+                    }
+                });
+
+                getAccounts(function (err, docs) {
+                    if (docs) {
+                        _this.listAccounts = docs.rows;
+                    }
+                })
+            },
             getFullName: function(account) {
                 if (account.hasOwnProperty('doc') && account.doc.hasOwnProperty('user')) {
                     return account.doc.user.first_name + ' ' + account.doc.user.last_name;
                 }
                 return 'Empty!'
             },
-            getAcounts() {
-                const _this = this;
-                Db.allDocs({include_docs: true})
-                    .then(function (docs) {
-                        console.log(docs);
-                        _this.listAccounts = docs.rows;
-                    })
-                    .catch(function (err) {
-                        console.log(err)
-                    })
-            },
             joinGroup(isAll = false) {
-
-                if (this.inviteLink === null || this.inviteLink.length === 0) {
-                    alert('Link error!');
-                    return;
-                }
 
                 this.isProcessing = true;
 
                 if (isAll) {
                     for (let i = 0; i < this.listAccounts.length; i++) {
-                        this.setTdClient(this.listAccounts[i]);
+                        this.setTdClient(this.listAccounts[i].doc);
                     }
                 } else {
                     for (let i = 0; i < this.selectAccounts.length; i++) {
-                        this.setTdClient(this.listAccounts[this.selectAccounts[i]]);
+                        this.setTdClient(this.listAccounts[this.selectAccounts[i]].doc);
                     }
                 }
             },
             setTdClient(account) {
-                console.log(account);
+                console.log('setTdClient', account);
 
                 const _this = this;
-                _this.tdClient = new TdClient(account, function (update) {
+                this.tdClient = new TdClient(account, function (update) {
                     switch (update['@type']) {
 
                         case 'updateAuthorizationState': {
@@ -110,19 +121,35 @@
 
                                 case 'authorizationStateReady':
 
-                                    _this.tdClient.send({
-                                        '@type': 'joinChatByInviteLink',
-                                        invite_link: _this.inviteLink
-                                    }).then(result => {
-                                        console.log('send joinChatByInviteLink result', result);
-                                    }).catch(error => {
-                                        console.error('send joinChatByInviteLink error', error);
+                                    _this.tdClient.getChat(_this.chat_id, function (result, err) {
+
+                                    });
+
+                                    _this.tdClient.joinChat(_this.chat_id, function (result, err) {
+                                        _this.toast_show = true;
+                                        if (err != null) {
+                                            _this.toast_msg = _this.getFullName(account) + ' join group FAILED';
+                                        } else {
+                                            _this.toast_msg = _this.getFullName(account) + ' join group SUCCESS';
+                                        }
                                     });
                                     break;
                             }
                         }
                     }
                 });
+            },
+            selectAll: function() {
+                this.selectAccounts = [];
+
+                if (this.allSelected) {
+                    for (account in this.listAccounts) {
+                        this.selectAccounts.push(this.users[user].id.toString());
+                    }
+                }
+            },
+            select: function() {
+                this.allSelected = false;
             }
         }
     }

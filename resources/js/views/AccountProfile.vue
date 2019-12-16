@@ -53,8 +53,11 @@
 
 <script>
     import {isPublicGroup, isSuperGroupChat} from '~/js/helpers/common'
-    import Db from '~/js/db'
+    import {getAccount} from "../databases/db_account";
+    import {createOrUpdateGroupChat} from '../databases/db_groupchat'
     import TdWeb from "~/js/TdWeb";
+    import GroupChat from "~/js/models/chat";
+
     let tdClient;
     
     export default {
@@ -68,7 +71,8 @@
             }
         },
         beforeRouteEnter (to, from, next) {
-            Db.get(to.query.phone, function (err, account) {
+
+            getAccount(to.query.phone, function (err, account) {
                 next(vm => vm.setData(err, account))
             });
         },
@@ -108,6 +112,7 @@
                     if (result) {
                         if (isPublicGroup(result)) {
                             _this.listChats.push(result);
+                            createOrUpdateGroupChat(new GroupChat(result))
                         }
                     }
                 });
