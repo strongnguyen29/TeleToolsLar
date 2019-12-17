@@ -34,7 +34,7 @@
 </template>
 
 <script>
-    import {getAccounts} from '../databases/db_account'
+    import {getAccounts} from '../databases/Account'
 
     export default {
         name: "Home",

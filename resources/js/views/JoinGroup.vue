@@ -49,7 +49,7 @@
 </template>
 
 <script>
-    import {getAccounts} from "../databases/db_account";
+    import {getAccounts} from "../databases/Account";
     import TdClient from '~/js/TdWeb'
 
     export default {

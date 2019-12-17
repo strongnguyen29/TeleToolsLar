@@ -27,15 +27,15 @@
                             <div class="form-group">
                                 <label for="groupExport">Group Export</label>
                                 <div class="row">
-                                    <div class="col-9">
+                                    <div class="col">
                                         <select class="form-control text-white bg-dark" id="groupExport" v-model="exportChatId">
                                             <option v-for="chat in listChats" :value="chat.doc.chat.id">
                                                 <p class="text-truncate mb-0">{{ chat.doc.chat.title }}</p>
                                             </option>
                                         </select>
                                     </div>
-                                    <div class="col-3 pl-0">
-                                        <button class="btn btn-primary" v-on:click="getUser">Get User</button>
+                                    <div class="col-4 pl-0">
+                                        <button class="btn btn-primary px-2" v-on:click="getUserMember">Get User</button>
                                     </div>
                                 </div>
                             </div>
@@ -56,8 +56,12 @@
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <button class="btn btn-primary">Start</button>
-                                <button class="btn btn-secondary">Stop</button>
+                                <button class="btn btn-primary" :disabled="runState === 'ready'">
+                                    Start
+                                </button>
+                                <button class="btn btn-secondary" :disabled="runState === 'running'">
+                                    Stop
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -106,8 +110,8 @@
 </template>
 
 <script>
-    import {getAccounts} from "../databases/db_account";
-    import {getGroupChats} from "../databases/db_groupchat";
+    import {getAccounts} from "../databases/Account";
+    import {getGroupChats} from "../databases/GroupChat";
 
     export default {
         name: "AddMember",
@@ -122,8 +126,8 @@
                 delayTime: 1 ,// second
                 totalAdded: 0,
                 addSuccess: 0,
-                addFailed: 0
-
+                addFailed: 0,
+                runState: 'pending' // pending, ready, running
             }
         },
         created() {
@@ -140,7 +144,7 @@
             })
         },
         methods: {
-            getUser() {
+            getUserMember() {
 
             },
             startAddMember() {

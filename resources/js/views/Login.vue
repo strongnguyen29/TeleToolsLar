@@ -52,10 +52,10 @@
 
 <script>
 
-    import {isValidPhoneNumber, isSuperGroupChat, isPublicGroup} from '~/js/helpers/common'
-    import {createAccount, getAccount} from '~/js/databases/db_account'
-    import TdClient from '~/js/TdWeb'
-    import Account from "~/js/models/account";
+    import {isValidPhoneNumber, isSuperGroupChat, isPublicGroup} from '../helpers/common'
+    import {createAccount, getAccount} from '../databases/Account'
+    import TdClient from '../TdWeb'
+    import Account from "../models/Account";
 
     let tdClient;
 

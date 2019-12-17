@@ -52,11 +52,11 @@
 </template>
 
 <script>
-    import {isPublicGroup, isSuperGroupChat} from '~/js/helpers/common'
-    import {getAccount} from "../databases/db_account";
-    import {createOrUpdateGroupChat} from '../databases/db_groupchat'
-    import TdWeb from "~/js/TdWeb";
-    import GroupChat from "~/js/models/chat";
+    import {isPublicGroup, isSuperGroupChat} from '../helpers/common'
+    import {getAccount} from "../databases/Account";
+    import {createOrUpdateGroupChat} from '../databases/GroupChat'
+    import TdWeb from "../TdWeb";
+    import GroupChat from "../models/GroupChat";
 
     let tdClient;
     

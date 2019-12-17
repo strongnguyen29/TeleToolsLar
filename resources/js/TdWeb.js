@@ -60,6 +60,7 @@ export default function TdWeb(account, closers = null) {
 
     /**
      * Send paramters
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1set_tdlib_parameters.html
      */
     this.sendParamters = function() {
 
@@ -72,7 +73,11 @@ export default function TdWeb(account, closers = null) {
             console.error('TdWeb::class sendParamters: error', error);
         });
     };
-
+    /**
+     * Send phone login
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1set_authentication_phone_number.html
+     * @param phone
+     */
     this.sendPhone = function (phone) {
         this.client.send({
             '@type': 'setAuthenticationPhoneNumber',
@@ -83,7 +88,11 @@ export default function TdWeb(account, closers = null) {
             console.error('TdWeb::class sendPhone: error', error);
         });
     };
-
+    /**
+     * Send code verify
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1check_authentication_code.html
+     * @param code
+     */
     this.sendCode = function (code) {
         this.client.send({
             '@type': 'checkAuthenticationCode',
@@ -97,6 +106,7 @@ export default function TdWeb(account, closers = null) {
 
     /**
      * Get current user
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_user.html
      * @param userId
      * @param callback
      */
@@ -148,6 +158,7 @@ export default function TdWeb(account, closers = null) {
 
     /**
      * Get group members
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_supergroup_members.html
      * @param id
      * @param offset
      * @param callback
@@ -167,7 +178,13 @@ export default function TdWeb(account, closers = null) {
             if (callback) callback(null, error);
         });
     };
-
+    /**
+     * Adds a new member to a chat
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1add_chat_member.html
+     * @param chatId
+     * @param userId
+     * @param callback
+     */
     this.addChatMember = function (chatId, userId, callback = null) {
         this.client.send({
             '@type': 'addChatMember',
@@ -179,6 +196,27 @@ export default function TdWeb(account, closers = null) {
             if (callback) callback(result, null);
         }).catch(error => {
             console.error('TdWeb::class send addChatMember error', error);
+            if (callback) callback(null, error);
+        });
+    };
+
+    /**
+     * Adds multiple new members to a chat
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1add_chat_members.html
+     * @param chatId
+     * @param userIds array
+     * @param callback function
+     */
+    this.addChatMembers = function (chatId, userIds, callback = null) {
+        this.client.send({
+            '@type': 'addChatMembers',
+            chat_id: chatId,
+            user_ids: userIds
+        }).then(result => {
+            console.log('TdWeb::class send addChatMembers result', result);
+            if (callback) callback(result, null);
+        }).catch(error => {
+            console.error('TdWeb::class send addChatMembers error', error);
             if (callback) callback(null, error);
         });
     };
