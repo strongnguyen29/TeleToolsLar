@@ -12,41 +12,46 @@
                         <h5 class="card-title m-0">Setup</h5>
                     </div>
                     <div class="card-body">
-                        <p class="card-text"><strong>Total Add: </strong>12345</p>
-                        <p><strong>Added Success: </strong>564</p>
-                        <p><strong>Added Failed: </strong>569</p>
+                        <p class="card-text"><strong>Total Add: </strong>{{ totalAdded }}</p>
+                        <p><strong>Added Success: </strong>{{ addSuccess }}</p>
+                        <p><strong>Added Failed: </strong>{{ addFailed }}</p>
                         <form>
                             <div class="form-group">
                                 <label for="groupAdd">Group Add</label>
-                                <select class="form-control text-white bg-dark" id="groupAdd">
-                                    <option v-for="i in 10">
-                                        <p class="text-truncate mb-0">
-                                            SuperGroup {{i}}
-                                        </p>
+                                <select class="form-control text-white bg-dark" id="groupAdd" v-model="addChatId">
+                                    <option v-for="chat in listChats" :value="chat.doc.chat.id">
+                                        <p class="text-truncate mb-0">{{ chat.doc.chat.title }}</p>
                                     </option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label for="groupExport">Group Export</label>
-                                <select class="form-control text-white bg-dark" id="groupExport">
-                                    <option v-for="i in 10">
-                                        <p class="text-truncate mb-0">SuperGroup {{i}}</p>
-                                    </option>
-                                </select>
+                                <div class="row">
+                                    <div class="col-9">
+                                        <select class="form-control text-white bg-dark" id="groupExport" v-model="exportChatId">
+                                            <option v-for="chat in listChats" :value="chat.doc.chat.id">
+                                                <p class="text-truncate mb-0">{{ chat.doc.chat.title }}</p>
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-3 pl-0">
+                                        <button class="btn btn-primary" v-on:click="getUser">Get User</button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-group row align-content-center">
                                 <label for="limitMember" class="col-form-label col pr-0">
                                     Limit Add
                                 </label>
                                 <div class="col-4">
-                                    <input type="number" class="form-control text-white bg-dark"
+                                    <input type="number" class="form-control text-white bg-dark" v-model="limitAddPerAcc"
                                            id="limitMember" value="50" max="200" min="1">
                                 </div>
                             </div>
                             <div class="form-group row align-content-center">
                                 <label for="delayInput" class="col-form-label col pr-0">Delay Add (seconds)</label>
                                 <div class="col-4">
-                                    <input type="number" class="form-control text-white bg-dark"
+                                    <input type="number" class="form-control text-white bg-dark" v-model="delayTime"
                                            id="delayInput" value="1" max="60" min="1">
                                 </div>
                             </div>
@@ -69,11 +74,11 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr v-for="i in 200">
-                        <th>{{ i }}</th>
-                        <td>+84396905875</td>
-                        <td>1254</td>
-                        <td>Done</td>
+                    <tr v-for="(account, index) in listAccounts">
+                        <th>{{ index }}</th>
+                        <td>+{{ account.doc.phone }}</td>
+                        <td>{{ account.hasOwnProperty('added') ? account.added : '-' }}</td>
+                        <td>{{ account.hasOwnProperty('status') ? account.status : '-' }}</td>
                     </tr>
                     </tbody>
                 </table>
@@ -84,16 +89,14 @@
                     <tr>
                         <th scope="col">#</th>
                         <th scope="col">ID</th>
-                        <th scope="col">Name</th>
                         <th scope="col">Status</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr v-for="j in 100">
-                        <th>{{ j }}</th>
-                        <td>4568753</td>
-                        <td>Vũ kiếm</td>
-                        <td>Failed</td>
+                    <tr v-for="(user, index) in listUsers">
+                        <th>{{ index }}</th>
+                        <td>{{ user.user_id }}</td>
+                        <td>{{ user.hasOwnProperty('status') ? user.status : '-' }}</td>
                     </tr>
                     </tbody>
                 </table>
@@ -103,8 +106,50 @@
 </template>
 
 <script>
+    import {getAccounts} from "../databases/db_account";
+    import {getGroupChats} from "../databases/db_groupchat";
+
     export default {
-        name: "AddMember"
+        name: "AddMember",
+        data: function () {
+            return {
+                listAccounts: [],
+                listUsers: [],
+                listChats: [],
+                addChatId: null,
+                exportChatId: null,
+                limitAddPerAcc: 50,
+                delayTime: 1 ,// second
+                totalAdded: 0,
+                addSuccess: 0,
+                addFailed: 0
+
+            }
+        },
+        created() {
+            const _this = this;
+            getAccounts(function (err, docs) {
+                if (docs) {
+                    _this.listAccounts = docs.rows;
+                }
+            });
+            getGroupChats(function (err, docs) {
+                if (docs) {
+                    _this.listChats = docs.rows;
+                }
+            })
+        },
+        methods: {
+            getUser() {
+
+            },
+            startAddMember() {
+
+            },
+            stopAddMember() {
+
+            }
+        }
     }
 </script>
 

@@ -8,42 +8,41 @@
         <div class="row mt-4">
             <div class="col-4">
                 <div class="form-group">
-                    <label for="groupChat">Group chat</label>
-                    <select class="form-control" id="groupChat" v-model="chat_id">
-                        <option v-for="chat in  listChats" :value="chat.doc.chat.id">
-                            {{ chat.doc.chat.title }} ({{ chat.doc.chat.id }})
-                        </option>
-                    </select>
+                    <label for="inviteLink">Group invite link</label>
+                    <input type="url" v-model="inviteLink" class="form-control" id="inviteLink"/>
                 </div>
                 <div class="form-group">
-                    <button type="submit" class="btn btn-primary" v-on:click="joinGroup">Join</button>
-                    <button type="submit" class="btn btn-primary" v-on:click="joinGroup(true)">Join All</button>
+                    <button type="submit" class="btn btn-primary" v-on:click="joinGroup" :disabled="processing">
+                        {{ processing ? 'processing...' : 'Join group'}}
+                    </button>
                 </div>
             </div>
             <div class="col-4 offset-1">
                 <table class="table table-striped table-dark">
                     <thead>
                     <tr>
-                        <th scope="col">#</th>
+                        <th scope="col">
+                            <input type="checkbox" v-model="allSelected" @input="selectAll" @change="selectAll">
+                        </th>
                         <th scope="col">Phone</th>
                         <th scope="col">Name</th>
+                        <th scope="col">Status</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr v-for="(account, index) in  listAccounts">
-                        <th><input type="checkbox" :value="index" :id="'account_' + index" v-model="selectAccounts"></th>
+                        <th>
+                            <input type="checkbox"
+                                   :value="index" :id="'account_' + index"
+                                   v-on:click="select"
+                                   v-model="selectAccounts">
+                        </th>
                         <td><label :for="'account_' + index" class="m-0">{{ account.doc.phone }}</label></td>
                         <td>{{ getFullName(account) }}</td>
+                        <td>{{ account.hasOwnProperty('added') ? account.added : '-' }}</td>
                     </tr>
                     </tbody>
                 </table>
-            </div>
-        </div>
-        <div v-if="toast_show" aria-live="polite" aria-atomic="true" style="position: relative; min-height: 200px;">
-            <div class="toast" style="position: absolute; top: 0; right: 0;">
-                <div class="toast-body">
-                    {{ toast_msg }}
-                </div>
             </div>
         </div>
     </div>
@@ -51,7 +50,6 @@
 
 <script>
     import {getAccounts} from "../databases/db_account";
-    import {getGroupChats} from "../databases/db_groupchat";
     import TdClient from '~/js/TdWeb'
 
     export default {
@@ -62,12 +60,10 @@
                 tdClient: null,
                 listAccounts: [],
                 selectAccounts: [],
+                indexProcess: 0,
                 allSelected: false,
-                listChats: [],
-                chat_id: null,
-                isProcessing: false,
-                toast_show: false,
-                toast_msg: ''
+                inviteLink: '',
+                processing: false
             }
         },
         created() {
@@ -76,11 +72,6 @@
         methods: {
             getDatas() {
                 const _this = this;
-                getGroupChats(function (err, docs) {
-                    if (docs) {
-                        _this.listChats = docs.rows;
-                    }
-                });
 
                 getAccounts(function (err, docs) {
                     if (docs) {
@@ -94,43 +85,40 @@
                 }
                 return 'Empty!'
             },
-            joinGroup(isAll = false) {
-
-                this.isProcessing = true;
-
-                if (isAll) {
-                    for (let i = 0; i < this.listAccounts.length; i++) {
-                        this.setTdClient(this.listAccounts[i].doc);
-                    }
-                } else {
-                    for (let i = 0; i < this.selectAccounts.length; i++) {
-                        this.setTdClient(this.listAccounts[this.selectAccounts[i]].doc);
-                    }
+            joinGroup() {
+                if (this.inviteLink.length < 3) {
+                    alert('Link ko đúng.');
+                    return;
                 }
+                if (this.selectAccounts.length === 0) {
+                    alert('Chưa chọn account tham gia group.');
+                    return;
+                }
+
+                this.processing = true;
+                this.tdClient = null;
+                this.indexProcess = 0;
+                this.setTdClient(this.listAccounts[this.selectAccounts[this.indexProcess]].doc);
             },
             setTdClient(account) {
                 console.log('setTdClient', account);
-
                 const _this = this;
                 this.tdClient = new TdClient(account, function (update) {
                     switch (update['@type']) {
-
                         case 'updateAuthorizationState': {
-
                             switch (update.authorization_state['@type']) {
-
                                 case 'authorizationStateReady':
+                                    _this.tdClient.joinChatByInviteLink(_this.inviteLink, function (result, err) {
 
-                                    _this.tdClient.getChat(_this.chat_id, function (result, err) {
+                                        let acc = _this.listAccounts[_this.selectAccounts[_this.indexProcess]];
+                                        acc.added = err ? 'Failed' : 'Success';
+                                        _this.listAccounts.splice(_this.selectAccounts[_this.indexProcess], 1, acc);
 
-                                    });
-
-                                    _this.tdClient.joinChat(_this.chat_id, function (result, err) {
-                                        _this.toast_show = true;
-                                        if (err != null) {
-                                            _this.toast_msg = _this.getFullName(account) + ' join group FAILED';
+                                        _this.indexProcess++;
+                                        if (_this.indexProcess < _this.selectAccounts.length) {
+                                            _this.setTdClient(_this.listAccounts[_this.selectAccounts[_this.indexProcess]].doc);
                                         } else {
-                                            _this.toast_msg = _this.getFullName(account) + ' join group SUCCESS';
+                                            _this.processing = false;
                                         }
                                     });
                                     break;
@@ -139,18 +127,18 @@
                     }
                 });
             },
-            selectAll: function() {
+            selectAll : function ({ type, target }) {
+                console.log('selectAll', target.checked);
                 this.selectAccounts = [];
-
-                if (this.allSelected) {
-                    for (account in this.listAccounts) {
-                        this.selectAccounts.push(this.users[user].id.toString());
+                if (target.checked) {
+                    for (let i = 0; i < this.listAccounts.length; i++) {
+                        this.selectAccounts.push(i);
                     }
                 }
             },
-            select: function() {
+            select () {
                 this.allSelected = false;
-            }
+            },
         }
     }
 </script>

@@ -2021,6 +2021,8 @@ var tdClient;
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _databases_db_account__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../databases/db_account */ "./resources/js/databases/db_account.js");
+/* harmony import */ var _databases_db_groupchat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../databases/db_groupchat */ "./resources/js/databases/db_groupchat.js");
 //
 //
 //
@@ -2125,8 +2127,47 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+
+
 /* harmony default export */ __webpack_exports__["default"] = ({
-  name: "AddMember"
+  name: "AddMember",
+  data: function data() {
+    return {
+      listAccounts: [],
+      listUsers: [],
+      listChats: [],
+      addChatId: null,
+      exportChatId: null,
+      limitAddPerAcc: 50,
+      delayTime: 1,
+      // second
+      totalAdded: 0,
+      addSuccess: 0,
+      addFailed: 0
+    };
+  },
+  created: function created() {
+    var _this = this;
+
+    Object(_databases_db_account__WEBPACK_IMPORTED_MODULE_0__["getAccounts"])(function (err, docs) {
+      if (docs) {
+        _this.listAccounts = docs.rows;
+      }
+    });
+    Object(_databases_db_groupchat__WEBPACK_IMPORTED_MODULE_1__["getGroupChats"])(function (err, docs) {
+      if (docs) {
+        _this.listChats = docs.rows;
+      }
+    });
+  },
+  methods: {
+    getUser: function getUser() {},
+    startAddMember: function startAddMember() {},
+    stopAddMember: function stopAddMember() {}
+  }
 });
 
 /***/ }),
@@ -2301,8 +2342,7 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _databases_db_account__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../databases/db_account */ "./resources/js/databases/db_account.js");
-/* harmony import */ var _databases_db_groupchat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../databases/db_groupchat */ "./resources/js/databases/db_groupchat.js");
-/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
 //
 //
 //
@@ -2353,8 +2393,6 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
@@ -2364,12 +2402,10 @@ __webpack_require__.r(__webpack_exports__);
       tdClient: null,
       listAccounts: [],
       selectAccounts: [],
+      indexProcess: 0,
       allSelected: false,
-      listChats: [],
-      chat_id: null,
-      isProcessing: false,
-      toast_show: false,
-      toast_msg: ''
+      inviteLink: '',
+      processing: false
     };
   },
   created: function created() {
@@ -2379,11 +2415,6 @@ __webpack_require__.r(__webpack_exports__);
     getDatas: function getDatas() {
       var _this = this;
 
-      Object(_databases_db_groupchat__WEBPACK_IMPORTED_MODULE_1__["getGroupChats"])(function (err, docs) {
-        if (docs) {
-          _this.listChats = docs.rows;
-        }
-      });
       Object(_databases_db_account__WEBPACK_IMPORTED_MODULE_0__["getAccounts"])(function (err, docs) {
         if (docs) {
           _this.listAccounts = docs.rows;
@@ -2398,39 +2429,44 @@ __webpack_require__.r(__webpack_exports__);
       return 'Empty!';
     },
     joinGroup: function joinGroup() {
-      var isAll = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-      this.isProcessing = true;
-
-      if (isAll) {
-        for (var i = 0; i < this.listAccounts.length; i++) {
-          this.setTdClient(this.listAccounts[i].doc);
-        }
-      } else {
-        for (var _i = 0; _i < this.selectAccounts.length; _i++) {
-          this.setTdClient(this.listAccounts[this.selectAccounts[_i]].doc);
-        }
+      if (this.inviteLink.length < 3) {
+        alert('Link ko đúng.');
+        return;
       }
+
+      if (this.selectAccounts.length === 0) {
+        alert('Chưa chọn account tham gia group.');
+        return;
+      }
+
+      this.processing = true;
+      this.tdClient = null;
+      this.indexProcess = 0;
+      this.setTdClient(this.listAccounts[this.selectAccounts[this.indexProcess]].doc);
     },
     setTdClient: function setTdClient(account) {
       console.log('setTdClient', account);
 
       var _this = this;
 
-      this.tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_2__["default"](account, function (update) {
+      this.tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_1__["default"](account, function (update) {
         switch (update['@type']) {
           case 'updateAuthorizationState':
             {
               switch (update.authorization_state['@type']) {
                 case 'authorizationStateReady':
-                  _this.tdClient.getChat(_this.chat_id, function (result, err) {});
+                  _this.tdClient.joinChatByInviteLink(_this.inviteLink, function (result, err) {
+                    var acc = _this.listAccounts[_this.selectAccounts[_this.indexProcess]];
+                    acc.added = err ? 'Failed' : 'Success';
 
-                  _this.tdClient.joinChat(_this.chat_id, function (result, err) {
-                    _this.toast_show = true;
+                    _this.listAccounts.splice(_this.selectAccounts[_this.indexProcess], 1, acc);
 
-                    if (err != null) {
-                      _this.toast_msg = _this.getFullName(account) + ' join group FAILED';
+                    _this.indexProcess++;
+
+                    if (_this.indexProcess < _this.selectAccounts.length) {
+                      _this.setTdClient(_this.listAccounts[_this.selectAccounts[_this.indexProcess]].doc);
                     } else {
-                      _this.toast_msg = _this.getFullName(account) + ' join group SUCCESS';
+                      _this.processing = false;
                     }
                   });
 
@@ -2440,12 +2476,15 @@ __webpack_require__.r(__webpack_exports__);
         }
       });
     },
-    selectAll: function selectAll() {
+    selectAll: function selectAll(_ref) {
+      var type = _ref.type,
+          target = _ref.target;
+      console.log('selectAll', target.checked);
       this.selectAccounts = [];
 
-      if (this.allSelected) {
-        for (account in this.listAccounts) {
-          this.selectAccounts.push(this.users[user].id.toString());
+      if (target.checked) {
+        for (var i = 0; i < this.listAccounts.length; i++) {
+          this.selectAccounts.push(i);
         }
       }
     },
@@ -54015,11 +54054,20 @@ var render = function() {
           _vm._m(1),
           _vm._v(" "),
           _c("div", { staticClass: "card-body" }, [
-            _vm._m(2),
+            _c("p", { staticClass: "card-text" }, [
+              _c("strong", [_vm._v("Total Add: ")]),
+              _vm._v(_vm._s(_vm.totalAdded))
+            ]),
             _vm._v(" "),
-            _vm._m(3),
+            _c("p", [
+              _c("strong", [_vm._v("Added Success: ")]),
+              _vm._v(_vm._s(_vm.addSuccess))
+            ]),
             _vm._v(" "),
-            _vm._m(4),
+            _c("p", [
+              _c("strong", [_vm._v("Added Failed: ")]),
+              _vm._v(_vm._s(_vm.addFailed))
+            ]),
             _vm._v(" "),
             _c("form", [
               _c("div", { staticClass: "form-group" }, [
@@ -54030,19 +54078,42 @@ var render = function() {
                 _c(
                   "select",
                   {
+                    directives: [
+                      {
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.addChatId,
+                        expression: "addChatId"
+                      }
+                    ],
                     staticClass: "form-control text-white bg-dark",
-                    attrs: { id: "groupAdd" }
+                    attrs: { id: "groupAdd" },
+                    on: {
+                      change: function($event) {
+                        var $$selectedVal = Array.prototype.filter
+                          .call($event.target.options, function(o) {
+                            return o.selected
+                          })
+                          .map(function(o) {
+                            var val = "_value" in o ? o._value : o.value
+                            return val
+                          })
+                        _vm.addChatId = $event.target.multiple
+                          ? $$selectedVal
+                          : $$selectedVal[0]
+                      }
+                    }
                   },
-                  _vm._l(10, function(i) {
-                    return _c("option", [
-                      _c("p", { staticClass: "text-truncate mb-0" }, [
-                        _vm._v(
-                          "\n                                        SuperGroup " +
-                            _vm._s(i) +
-                            "\n                                    "
-                        )
-                      ])
-                    ])
+                  _vm._l(_vm.listChats, function(chat) {
+                    return _c(
+                      "option",
+                      { domProps: { value: chat.doc.chat.id } },
+                      [
+                        _c("p", { staticClass: "text-truncate mb-0" }, [
+                          _vm._v(_vm._s(chat.doc.chat.title))
+                        ])
+                      ]
+                    )
                   }),
                   0
                 )
@@ -54053,28 +54124,160 @@ var render = function() {
                   _vm._v("Group Export")
                 ]),
                 _vm._v(" "),
-                _c(
-                  "select",
-                  {
-                    staticClass: "form-control text-white bg-dark",
-                    attrs: { id: "groupExport" }
-                  },
-                  _vm._l(10, function(i) {
-                    return _c("option", [
-                      _c("p", { staticClass: "text-truncate mb-0" }, [
-                        _vm._v("SuperGroup " + _vm._s(i))
-                      ])
-                    ])
-                  }),
-                  0
-                )
+                _c("div", { staticClass: "row" }, [
+                  _c("div", { staticClass: "col-9" }, [
+                    _c(
+                      "select",
+                      {
+                        directives: [
+                          {
+                            name: "model",
+                            rawName: "v-model",
+                            value: _vm.exportChatId,
+                            expression: "exportChatId"
+                          }
+                        ],
+                        staticClass: "form-control text-white bg-dark",
+                        attrs: { id: "groupExport" },
+                        on: {
+                          change: function($event) {
+                            var $$selectedVal = Array.prototype.filter
+                              .call($event.target.options, function(o) {
+                                return o.selected
+                              })
+                              .map(function(o) {
+                                var val = "_value" in o ? o._value : o.value
+                                return val
+                              })
+                            _vm.exportChatId = $event.target.multiple
+                              ? $$selectedVal
+                              : $$selectedVal[0]
+                          }
+                        }
+                      },
+                      _vm._l(_vm.listChats, function(chat) {
+                        return _c(
+                          "option",
+                          { domProps: { value: chat.doc.chat.id } },
+                          [
+                            _c("p", { staticClass: "text-truncate mb-0" }, [
+                              _vm._v(_vm._s(chat.doc.chat.title))
+                            ])
+                          ]
+                        )
+                      }),
+                      0
+                    )
+                  ]),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "col-3 pl-0" }, [
+                    _c(
+                      "button",
+                      {
+                        staticClass: "btn btn-primary",
+                        on: { click: _vm.getUser }
+                      },
+                      [_vm._v("Get User")]
+                    )
+                  ])
+                ])
               ]),
               _vm._v(" "),
-              _vm._m(5),
+              _c(
+                "div",
+                { staticClass: "form-group row align-content-center" },
+                [
+                  _c(
+                    "label",
+                    {
+                      staticClass: "col-form-label col pr-0",
+                      attrs: { for: "limitMember" }
+                    },
+                    [
+                      _vm._v(
+                        "\n                                Limit Add\n                            "
+                      )
+                    ]
+                  ),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "col-4" }, [
+                    _c("input", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.limitAddPerAcc,
+                          expression: "limitAddPerAcc"
+                        }
+                      ],
+                      staticClass: "form-control text-white bg-dark",
+                      attrs: {
+                        type: "number",
+                        id: "limitMember",
+                        value: "50",
+                        max: "200",
+                        min: "1"
+                      },
+                      domProps: { value: _vm.limitAddPerAcc },
+                      on: {
+                        input: function($event) {
+                          if ($event.target.composing) {
+                            return
+                          }
+                          _vm.limitAddPerAcc = $event.target.value
+                        }
+                      }
+                    })
+                  ])
+                ]
+              ),
               _vm._v(" "),
-              _vm._m(6),
+              _c(
+                "div",
+                { staticClass: "form-group row align-content-center" },
+                [
+                  _c(
+                    "label",
+                    {
+                      staticClass: "col-form-label col pr-0",
+                      attrs: { for: "delayInput" }
+                    },
+                    [_vm._v("Delay Add (seconds)")]
+                  ),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "col-4" }, [
+                    _c("input", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.delayTime,
+                          expression: "delayTime"
+                        }
+                      ],
+                      staticClass: "form-control text-white bg-dark",
+                      attrs: {
+                        type: "number",
+                        id: "delayInput",
+                        value: "1",
+                        max: "60",
+                        min: "1"
+                      },
+                      domProps: { value: _vm.delayTime },
+                      on: {
+                        input: function($event) {
+                          if ($event.target.composing) {
+                            return
+                          }
+                          _vm.delayTime = $event.target.value
+                        }
+                      }
+                    })
+                  ])
+                ]
+              ),
               _vm._v(" "),
-              _vm._m(7)
+              _vm._m(2)
             ])
           ])
         ])
@@ -54082,19 +54285,31 @@ var render = function() {
       _vm._v(" "),
       _c("div", { staticClass: "col-5 tb-list" }, [
         _c("table", { staticClass: "table table-striped table-dark" }, [
-          _vm._m(8),
+          _vm._m(3),
           _vm._v(" "),
           _c(
             "tbody",
-            _vm._l(200, function(i) {
+            _vm._l(_vm.listAccounts, function(account, index) {
               return _c("tr", [
-                _c("th", [_vm._v(_vm._s(i))]),
+                _c("th", [_vm._v(_vm._s(index))]),
                 _vm._v(" "),
-                _c("td", [_vm._v("+84396905875")]),
+                _c("td", [_vm._v("+" + _vm._s(account.doc.phone))]),
                 _vm._v(" "),
-                _c("td", [_vm._v("1254")]),
+                _c("td", [
+                  _vm._v(
+                    _vm._s(
+                      account.hasOwnProperty("added") ? account.added : "-"
+                    )
+                  )
+                ]),
                 _vm._v(" "),
-                _c("td", [_vm._v("Done")])
+                _c("td", [
+                  _vm._v(
+                    _vm._s(
+                      account.hasOwnProperty("status") ? account.status : "-"
+                    )
+                  )
+                ])
               ])
             }),
             0
@@ -54104,19 +54319,21 @@ var render = function() {
       _vm._v(" "),
       _c("div", { staticClass: "col-4 tb-list" }, [
         _c("table", { staticClass: "table table-striped table-dark" }, [
-          _vm._m(9),
+          _vm._m(4),
           _vm._v(" "),
           _c(
             "tbody",
-            _vm._l(100, function(j) {
+            _vm._l(_vm.listUsers, function(user, index) {
               return _c("tr", [
-                _c("th", [_vm._v(_vm._s(j))]),
+                _c("th", [_vm._v(_vm._s(index))]),
                 _vm._v(" "),
-                _c("td", [_vm._v("4568753")]),
+                _c("td", [_vm._v(_vm._s(user.user_id))]),
                 _vm._v(" "),
-                _c("td", [_vm._v("Vũ kiếm")]),
-                _vm._v(" "),
-                _c("td", [_vm._v("Failed")])
+                _c("td", [
+                  _vm._v(
+                    _vm._s(user.hasOwnProperty("status") ? user.status : "-")
+                  )
+                ])
               ])
             }),
             0
@@ -54141,87 +54358,6 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("div", { staticClass: "card-header" }, [
       _c("h5", { staticClass: "card-title m-0" }, [_vm._v("Setup")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("p", { staticClass: "card-text" }, [
-      _c("strong", [_vm._v("Total Add: ")]),
-      _vm._v("12345")
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("p", [_c("strong", [_vm._v("Added Success: ")]), _vm._v("564")])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("p", [_c("strong", [_vm._v("Added Failed: ")]), _vm._v("569")])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "form-group row align-content-center" }, [
-      _c(
-        "label",
-        {
-          staticClass: "col-form-label col pr-0",
-          attrs: { for: "limitMember" }
-        },
-        [
-          _vm._v(
-            "\n                                Limit Add\n                            "
-          )
-        ]
-      ),
-      _vm._v(" "),
-      _c("div", { staticClass: "col-4" }, [
-        _c("input", {
-          staticClass: "form-control text-white bg-dark",
-          attrs: {
-            type: "number",
-            id: "limitMember",
-            value: "50",
-            max: "200",
-            min: "1"
-          }
-        })
-      ])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "form-group row align-content-center" }, [
-      _c(
-        "label",
-        {
-          staticClass: "col-form-label col pr-0",
-          attrs: { for: "delayInput" }
-        },
-        [_vm._v("Delay Add (seconds)")]
-      ),
-      _vm._v(" "),
-      _c("div", { staticClass: "col-4" }, [
-        _c("input", {
-          staticClass: "form-control text-white bg-dark",
-          attrs: {
-            type: "number",
-            id: "delayInput",
-            value: "1",
-            max: "60",
-            min: "1"
-          }
-        })
-      ])
     ])
   },
   function() {
@@ -54259,8 +54395,6 @@ var staticRenderFns = [
         _c("th", { attrs: { scope: "col" } }, [_vm._v("#")]),
         _vm._v(" "),
         _c("th", { attrs: { scope: "col" } }, [_vm._v("ID")]),
-        _vm._v(" "),
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("Name")]),
         _vm._v(" "),
         _c("th", { attrs: { scope: "col" } }, [_vm._v("Status")])
       ])
@@ -54534,50 +54668,31 @@ var render = function() {
     _c("div", { staticClass: "row mt-4" }, [
       _c("div", { staticClass: "col-4" }, [
         _c("div", { staticClass: "form-group" }, [
-          _c("label", { attrs: { for: "groupChat" } }, [_vm._v("Group chat")]),
+          _c("label", { attrs: { for: "inviteLink" } }, [
+            _vm._v("Group invite link")
+          ]),
           _vm._v(" "),
-          _c(
-            "select",
-            {
-              directives: [
-                {
-                  name: "model",
-                  rawName: "v-model",
-                  value: _vm.chat_id,
-                  expression: "chat_id"
-                }
-              ],
-              staticClass: "form-control",
-              attrs: { id: "groupChat" },
-              on: {
-                change: function($event) {
-                  var $$selectedVal = Array.prototype.filter
-                    .call($event.target.options, function(o) {
-                      return o.selected
-                    })
-                    .map(function(o) {
-                      var val = "_value" in o ? o._value : o.value
-                      return val
-                    })
-                  _vm.chat_id = $event.target.multiple
-                    ? $$selectedVal
-                    : $$selectedVal[0]
-                }
+          _c("input", {
+            directives: [
+              {
+                name: "model",
+                rawName: "v-model",
+                value: _vm.inviteLink,
+                expression: "inviteLink"
               }
-            },
-            _vm._l(_vm.listChats, function(chat) {
-              return _c("option", { domProps: { value: chat.doc.chat.id } }, [
-                _vm._v(
-                  "\n                        " +
-                    _vm._s(chat.doc.chat.title) +
-                    " (" +
-                    _vm._s(chat.doc.chat.id) +
-                    ")\n                    "
-                )
-              ])
-            }),
-            0
-          )
+            ],
+            staticClass: "form-control",
+            attrs: { type: "url", id: "inviteLink" },
+            domProps: { value: _vm.inviteLink },
+            on: {
+              input: function($event) {
+                if ($event.target.composing) {
+                  return
+                }
+                _vm.inviteLink = $event.target.value
+              }
+            }
+          })
         ]),
         _vm._v(" "),
         _c("div", { staticClass: "form-group" }, [
@@ -54585,31 +54700,75 @@ var render = function() {
             "button",
             {
               staticClass: "btn btn-primary",
-              attrs: { type: "submit" },
+              attrs: { type: "submit", disabled: _vm.processing },
               on: { click: _vm.joinGroup }
             },
-            [_vm._v("Join")]
-          ),
-          _vm._v(" "),
-          _c(
-            "button",
-            {
-              staticClass: "btn btn-primary",
-              attrs: { type: "submit" },
-              on: {
-                click: function($event) {
-                  return _vm.joinGroup(true)
-                }
-              }
-            },
-            [_vm._v("Join All")]
+            [
+              _vm._v(
+                "\n                    " +
+                  _vm._s(_vm.processing ? "processing..." : "Join group") +
+                  "\n                "
+              )
+            ]
           )
         ])
       ]),
       _vm._v(" "),
       _c("div", { staticClass: "col-4 offset-1" }, [
         _c("table", { staticClass: "table table-striped table-dark" }, [
-          _vm._m(1),
+          _c("thead", [
+            _c("tr", [
+              _c("th", { attrs: { scope: "col" } }, [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.allSelected,
+                      expression: "allSelected"
+                    }
+                  ],
+                  attrs: { type: "checkbox" },
+                  domProps: {
+                    checked: Array.isArray(_vm.allSelected)
+                      ? _vm._i(_vm.allSelected, null) > -1
+                      : _vm.allSelected
+                  },
+                  on: {
+                    input: _vm.selectAll,
+                    change: [
+                      function($event) {
+                        var $$a = _vm.allSelected,
+                          $$el = $event.target,
+                          $$c = $$el.checked ? true : false
+                        if (Array.isArray($$a)) {
+                          var $$v = null,
+                            $$i = _vm._i($$a, $$v)
+                          if ($$el.checked) {
+                            $$i < 0 && (_vm.allSelected = $$a.concat([$$v]))
+                          } else {
+                            $$i > -1 &&
+                              (_vm.allSelected = $$a
+                                .slice(0, $$i)
+                                .concat($$a.slice($$i + 1)))
+                          }
+                        } else {
+                          _vm.allSelected = $$c
+                        }
+                      },
+                      _vm.selectAll
+                    ]
+                  }
+                })
+              ]),
+              _vm._v(" "),
+              _c("th", { attrs: { scope: "col" } }, [_vm._v("Phone")]),
+              _vm._v(" "),
+              _c("th", { attrs: { scope: "col" } }, [_vm._v("Name")]),
+              _vm._v(" "),
+              _c("th", { attrs: { scope: "col" } }, [_vm._v("Status")])
+            ])
+          ]),
           _vm._v(" "),
           _c(
             "tbody",
@@ -54633,6 +54792,7 @@ var render = function() {
                         : _vm.selectAccounts
                     },
                     on: {
+                      click: _vm.select,
                       change: function($event) {
                         var $$a = _vm.selectAccounts,
                           $$el = $event.target,
@@ -54664,42 +54824,22 @@ var render = function() {
                   )
                 ]),
                 _vm._v(" "),
-                _c("td", [_vm._v(_vm._s(_vm.getFullName(account)))])
+                _c("td", [_vm._v(_vm._s(_vm.getFullName(account)))]),
+                _vm._v(" "),
+                _c("td", [
+                  _vm._v(
+                    _vm._s(
+                      account.hasOwnProperty("added") ? account.added : "-"
+                    )
+                  )
+                ])
               ])
             }),
             0
           )
         ])
       ])
-    ]),
-    _vm._v(" "),
-    _vm.toast_show
-      ? _c(
-          "div",
-          {
-            staticStyle: { position: "relative", "min-height": "200px" },
-            attrs: { "aria-live": "polite", "aria-atomic": "true" }
-          },
-          [
-            _c(
-              "div",
-              {
-                staticClass: "toast",
-                staticStyle: { position: "absolute", top: "0", right: "0" }
-              },
-              [
-                _c("div", { staticClass: "toast-body" }, [
-                  _vm._v(
-                    "\n                " +
-                      _vm._s(_vm.toast_msg) +
-                      "\n            "
-                  )
-                ])
-              ]
-            )
-          ]
-        )
-      : _vm._e()
+    ])
   ])
 }
 var staticRenderFns = [
@@ -54710,20 +54850,6 @@ var staticRenderFns = [
     return _c("div", { staticClass: "row" }, [
       _c("div", { staticClass: "col-12 d-inline-flex" }, [
         _c("h3", [_vm._v("Join group")])
-      ])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("thead", [
-      _c("tr", [
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("#")]),
-        _vm._v(" "),
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("Phone")]),
-        _vm._v(" "),
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("Name")])
       ])
     ])
   }
@@ -70257,8 +70383,6 @@ function TdWeb(account) {
   });
 
   this.client.onUpdate = function (update) {
-    console.log('TdWeb::class receive update', update);
-
     switch (update['@type']) {
       case 'updateAuthorizationState':
         {
@@ -70416,16 +70540,43 @@ function TdWeb(account) {
 
   this.joinChat = function (chatId) {
     var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
-    var params = {
+    this.client.send({
       '@type': 'joinChat',
       chat_id: chatId
-    };
-    console.log('joinChat data', params);
-    this.client.send(params).then(function (result) {
+    }).then(function (result) {
       console.log('TdWeb::class send joinChat result', result);
       if (callback) callback(result, null);
     })["catch"](function (error) {
       console.error('TdWeb::class send joinChat error', error);
+      if (callback) callback(null, error);
+    });
+  };
+
+  this.joinChatByInviteLink = function (inviteLink) {
+    var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    this.client.send({
+      '@type': 'joinChatByInviteLink',
+      invite_link: inviteLink
+    }).then(function (result) {
+      console.log('TdWeb::class send joinChatByInviteLink result', result);
+      if (callback) callback(result, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class send joinChatByInviteLink error', error);
+      if (callback) callback(null, error);
+    });
+  };
+
+  this.getChatMember = function (chat_id, user_id) {
+    var callback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+    this.client.send({
+      '@type': 'getChatMember',
+      chat_id: chat_id,
+      user_id: user_id
+    }).then(function (result) {
+      console.log('TdWeb::class send getChatMember result', result);
+      if (callback) callback(result, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class send getChatMember error', error);
       if (callback) callback(null, error);
     });
   };

@@ -39,7 +39,7 @@ export default function TdWeb(account, closers = null) {
     });
 
     this.client.onUpdate = update => {
-        console.log('TdWeb::class receive update', update);
+
         switch (update['@type']) {
             case 'updateAuthorizationState': {
                 switch (update.authorization_state['@type']) {
@@ -184,13 +184,8 @@ export default function TdWeb(account, closers = null) {
     };
 
     this.joinChat = function (chatId, callback = null) {
-        let params = {
-            '@type': 'joinChat',
-            chat_id: chatId
-        };
-        console.log('joinChat data', params);
 
-        this.client.send(params)
+        this.client.send({'@type': 'joinChat', chat_id: chatId})
             .then(result => {
                 console.log('TdWeb::class send joinChat result', result);
                 if (callback) callback(result, null);
@@ -198,6 +193,33 @@ export default function TdWeb(account, closers = null) {
                 console.error('TdWeb::class send joinChat error', error);
                 if (callback) callback(null, error);
             });
+    };
+
+    this.joinChatByInviteLink = function (inviteLink, callback = null) {
+
+        this.client.send({'@type': 'joinChatByInviteLink', invite_link: inviteLink})
+            .then(result => {
+                console.log('TdWeb::class send joinChatByInviteLink result', result);
+                if (callback) callback(result, null);
+            }).catch(error => {
+            console.error('TdWeb::class send joinChatByInviteLink error', error);
+            if (callback) callback(null, error);
+        });
+    };
+
+    this.getChatMember = function (chat_id, user_id, callback = null) {
+
+        this.client.send({
+            '@type': 'getChatMember',
+            chat_id: chat_id,
+            user_id: user_id
+        }).then(result => {
+            console.log('TdWeb::class send getChatMember result', result);
+            if (callback) callback(result, null);
+        }).catch(error => {
+            console.error('TdWeb::class send getChatMember error', error);
+            if (callback) callback(null, error);
+        });
     };
 
     return this;
