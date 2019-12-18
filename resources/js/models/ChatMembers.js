@@ -1,5 +1,6 @@
 
-export default function ChatMembers(chatMember) {
-    this._id = 'gc' + chat.id;
-    this.chat = chat;
+export default function ChatMembers(groupId) {
+    this._id = 'cm-' + chat.id;
+    this.groupId = groupId;
+    this.members = [];
 }

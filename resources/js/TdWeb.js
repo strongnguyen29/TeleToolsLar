@@ -73,9 +73,11 @@ export default function TdWeb(account, closers = null) {
             console.error('TdWeb::class sendParamters: error', error);
         });
     };
+
     /**
      * Send phone login
      * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1set_authentication_phone_number.html
+     *
      * @param phone
      */
     this.sendPhone = function (phone) {
@@ -88,9 +90,11 @@ export default function TdWeb(account, closers = null) {
             console.error('TdWeb::class sendPhone: error', error);
         });
     };
+
     /**
      * Send code verify
      * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1check_authentication_code.html
+     *
      * @param code
      */
     this.sendCode = function (code) {
@@ -107,6 +111,7 @@ export default function TdWeb(account, closers = null) {
     /**
      * Get current user
      * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_user.html
+     *
      * @param userId
      * @param callback
      */
@@ -126,6 +131,8 @@ export default function TdWeb(account, closers = null) {
 
     /**
      * get chats of current user
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_chats.html
+     *
      * @param callback
      */
     this.getChats = function (callback = null) {
@@ -143,6 +150,13 @@ export default function TdWeb(account, closers = null) {
         });
     };
 
+    /**
+     * Returns information about a chat by its identifier, this is an offline request if the current user is not a bot.
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_chat.html
+     *
+     * @param chatId
+     * @param callback
+     */
     this.getChat = function (chatId, callback = null) {
         this.client.send({
             '@type': 'getChat',
@@ -157,17 +171,39 @@ export default function TdWeb(account, closers = null) {
     };
 
     /**
+     * Returns information about a supergroup or channel by its identifier.
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_supergroup.html
+     *
+     * @param supergroupId
+     * @param callback
+     */
+    this.getSupergroup = function(supergroupId, callback = null) {
+
+        this.client.send({
+            '@type': 'getSupergroup',
+            supergroup_id: supergroupId
+        }).then(result => {
+            console.log('TdWeb::class getSupergroup: success', result);
+            if (callback) callback(result, null);
+        }).catch(error => {
+            console.error('TdWeb::class getSupergroup error', error);
+            if (callback) callback(null, error);
+        });
+    };
+
+    /**
      * Get group members
      * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_supergroup_members.html
-     * @param id
+     *
+     * @param groupId
      * @param offset
      * @param callback
      */
-    this.getGroupMembers = function (id, offset, callback = null) {
+    this.getGroupMembers = function (groupId, offset, callback = null) {
 
         this.client.send({
             '@type': 'getSupergroupMembers',
-            supergroup_id: id,
+            supergroup_id: groupId,
             offset: offset,
             limit:200
         }).then(result => {
@@ -178,9 +214,11 @@ export default function TdWeb(account, closers = null) {
             if (callback) callback(null, error);
         });
     };
+
     /**
      * Adds a new member to a chat
      * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1add_chat_member.html
+     *
      * @param chatId
      * @param userId
      * @param callback
@@ -203,6 +241,7 @@ export default function TdWeb(account, closers = null) {
     /**
      * Adds multiple new members to a chat
      * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1add_chat_members.html
+     *
      * @param chatId
      * @param userIds array
      * @param callback function
@@ -221,6 +260,13 @@ export default function TdWeb(account, closers = null) {
         });
     };
 
+    /**
+     * Adds current user as a new member to a chat.
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1join_chat.html
+     *
+     * @param chatId
+     * @param callback
+     */
     this.joinChat = function (chatId, callback = null) {
 
         this.client.send({'@type': 'joinChat', chat_id: chatId})
@@ -233,6 +279,13 @@ export default function TdWeb(account, closers = null) {
             });
     };
 
+    /**
+     * Uses an invite link to add the current user to the chat if possible
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1join_chat_by_invite_link.html
+     *
+     * @param inviteLink
+     * @param callback
+     */
     this.joinChatByInviteLink = function (inviteLink, callback = null) {
 
         this.client.send({'@type': 'joinChatByInviteLink', invite_link: inviteLink})
@@ -245,6 +298,14 @@ export default function TdWeb(account, closers = null) {
         });
     };
 
+    /**
+     * Returns information about a single member of a chat.
+     * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_chat_member.html
+     *
+     * @param chat_id
+     * @param user_id
+     * @param callback
+     */
     this.getChatMember = function (chat_id, user_id, callback = null) {
 
         this.client.send({
