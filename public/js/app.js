@@ -2023,6 +2023,8 @@ var tdClient;
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _databases_Account__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../databases/Account */ "./resources/js/databases/Account.js");
 /* harmony import */ var _databases_GroupChat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../databases/GroupChat */ "./resources/js/databases/GroupChat.js");
+/* harmony import */ var _databases_UserAdded__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../databases/UserAdded */ "./resources/js/databases/UserAdded.js");
+/* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
 //
 //
 //
@@ -2130,29 +2132,35 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-//
-//
-//
+
+
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: "AddMember",
   data: function data() {
     return {
+      tdClient: null,
       listAccounts: [],
+      selectAccounts: [],
       listUsers: [],
+      listUserAdded: [],
       listChats: [],
       addChatId: null,
-      exportChatId: null,
+      exportGroupId: null,
+      allSelected: false,
+      offsetAccount: 0,
+      offsetGetUser: 0,
+      offsetAddUser: 0,
+      offsetPerAcc: 0,
       limitAddPerAcc: 50,
-      delayTime: 1,
+      delayTime: 5,
       // second
       totalAdded: 0,
       addSuccess: 0,
       addFailed: 0,
-      runState: 'pending' // pending, ready, running
-
+      accAdded: 0,
+      isStarted: false
     };
   },
   created: function created() {
@@ -2161,6 +2169,7 @@ __webpack_require__.r(__webpack_exports__);
     Object(_databases_Account__WEBPACK_IMPORTED_MODULE_0__["getAccounts"])(function (err, docs) {
       if (docs) {
         _this.listAccounts = docs.rows;
+        _this.selectAccounts = _this.listAccounts;
       }
     });
     Object(_databases_GroupChat__WEBPACK_IMPORTED_MODULE_1__["getGroupChats"])(function (err, docs) {
@@ -2170,9 +2179,191 @@ __webpack_require__.r(__webpack_exports__);
     });
   },
   methods: {
-    getUserMember: function getUserMember() {},
-    startAddMember: function startAddMember() {},
-    stopAddMember: function stopAddMember() {}
+    startAddMember: function startAddMember() {
+      if (!this.addChatId) {
+        alert('Group add empty');
+        return;
+      }
+
+      if (!this.exportGroupId) {
+        alert('Group export empty');
+        return;
+      }
+
+      if (!this.selectAccounts.length === 0) {
+        alert('No account list selected!');
+        return;
+      }
+
+      console.log('START ADD MEMBER ==============================');
+      this.isStarted = true;
+      this.setTdClient(this.selectAccounts[this.offsetAccount].doc);
+    },
+    stopAddMember: function stopAddMember() {
+      console.log('stopAddMember');
+      this.isStarted = false;
+    },
+    setTdClient: function setTdClient(account) {
+      console.log('STEP 1: setTdClient -------------------------------------', account._id);
+
+      var _this = this;
+
+      this.tdClient = null;
+      this.tdClient = new _js_TdWeb__WEBPACK_IMPORTED_MODULE_3__["default"](account, function (update) {
+        switch (update['@type']) {
+          case 'updateAuthorizationState':
+            {
+              console.log('setTdClient', update.authorization_state['@type']);
+
+              switch (update.authorization_state['@type']) {
+                case 'authorizationStateReady':
+                  if (_this.isStarted) {
+                    _this.getUsers();
+                  }
+
+                  break;
+              }
+            }
+        }
+      });
+    },
+    getUsers: function getUsers() {
+      console.log('STEP 2: getUsers');
+
+      var _this = this;
+
+      this.listUsers = [];
+      this.offsetGetUser = 0; // get group info;
+
+      this.tdClient.getSupergroup(this.exportGroupId, function (result, err) {
+        if (result) {
+          _this.getGroupMembers();
+        } else {
+          _this.nextAccount();
+        }
+      });
+    },
+    getGroupMembers: function getGroupMembers() {
+      console.log('++++ getGroupMembers offsetGetUser = ' + this.offsetGetUser);
+
+      var _this = this;
+
+      this.tdClient.getGroupMembers(this.exportGroupId, this.offsetGetUser, function (result, err) {
+        if (result) {
+          for (var i = 0; i < result.members.length; i++) {
+            _this.listUsers.push(result.members[i].user_id);
+          }
+
+          _this.offsetGetUser += 200;
+
+          if (_this.offsetGetUser < result.total_count) {
+            _this.getGroupMembers();
+          } else {
+            _this.listUsers.sort();
+
+            if (_this.isStarted) {
+              console.log('STEP 3: addMember');
+
+              _this.addMember(_this.listUsers[_this.offsetAddUser]);
+            }
+          }
+        }
+      });
+    },
+    addMember: function addMember(userId) {
+      console.log('++++ addMember:: offsetAddUser = ' + this.offsetAddUser);
+
+      var _this = this;
+
+      Object(_databases_UserAdded__WEBPACK_IMPORTED_MODULE_2__["isUserAdded"])(_this.exportGroupId, _this.addChatId, userId, function (isAdded) {
+        if (isAdded) {
+          _this.offsetAddUser++;
+
+          if (_this.offsetAddUser < _this.listUsers.length) {
+            _this.addMember(_this.listUsers[_this.offsetAddUser]);
+          }
+        } else {
+          _this.tdClient.addChatMember(_this.addChatId, userId, function (result, err) {
+            _this.offsetAddUser++;
+            _this.offsetPerAcc++;
+            _this.totalAdded++;
+
+            if (result) {
+              _this.addSuccess++;
+              _this.accAdded++;
+            } else {
+              _this.addFailed++;
+            }
+
+            _this.listUserAdded.push({
+              user_id: userId,
+              added: result != null
+            }); // Save to database
+
+
+            Object(_databases_UserAdded__WEBPACK_IMPORTED_MODULE_2__["createUserAdded"])(_this.exportGroupId, _this.addChatId, userId);
+            if (!_this.isStarted) return;
+
+            if (_this.offsetPerAcc > _this.limitAddPerAcc || err && (err.message === 'PEER_FLOOD' || err.message === 'FLOOD_WAIT')) {
+              _this.nextAccount();
+
+              return;
+            }
+
+            if (_this.offsetAddUser < _this.listUsers.length) {
+              _this.sleep(_this.delayTime);
+
+              _this.addMember(_this.listUsers[_this.offsetAddUser]);
+            }
+          });
+        }
+      });
+    },
+    nextAccount: function nextAccount() {
+      // Run next account;
+      var acc = this.selectAccounts[this.offsetAccount];
+      var index = this.listAccounts.indexOf(acc);
+
+      if (index > -1) {
+        acc.added = this.accAdded;
+        acc.status = 'Done';
+        this.listAccounts.splice(index, 1, acc);
+      }
+
+      this.offsetPerAcc = 0;
+      this.accAdded = 0;
+      this.offsetAccount++;
+
+      if (this.offsetAccount < this.selectAccounts.length) {
+        console.log('NEXT ACCOUNT ------------------------------');
+        this.setTdClient(this.selectAccounts[this.offsetAccount].doc);
+      } else {
+        console.log('ADD MEMBER DONE =========================================');
+        this.isStarted = false;
+      }
+    },
+    selectAll: function selectAll(_ref) {
+      var type = _ref.type,
+          target = _ref.target;
+      this.selectAccounts = [];
+
+      if (target.checked) {
+        for (var i = 0; i < this.listAccounts.length; i++) {
+          this.selectAccounts.push(this.listAccounts[i]);
+        }
+      }
+    },
+    select: function select() {
+      this.allSelected = false;
+    },
+    sleep: function sleep(s) {
+      var date = Date.now();
+      var currentDate = null;
+
+      do {
+        currentDate = Date.now();
+      } while (currentDate - date < s * 1000);
+    }
   }
 });
 
@@ -2515,6 +2706,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _databases_Account__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../databases/Account */ "./resources/js/databases/Account.js");
 /* harmony import */ var _TdWeb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../TdWeb */ "./resources/js/TdWeb.js");
 /* harmony import */ var _models_Account__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../models/Account */ "./resources/js/models/Account.js");
+//
 //
 //
 //
@@ -53814,6 +54006,7 @@ function () {
 /******/ ]);
 });
 
+
 /***/ }),
 
 /***/ "./node_modules/timers-browserify/main.js":
@@ -54074,241 +54267,226 @@ var render = function() {
               _vm._v(_vm._s(_vm.addFailed))
             ]),
             _vm._v(" "),
-            _c("form", [
-              _c("div", { staticClass: "form-group" }, [
-                _c("label", { attrs: { for: "groupAdd" } }, [
-                  _vm._v("Group Add")
-                ]),
-                _vm._v(" "),
-                _c(
-                  "select",
-                  {
-                    directives: [
-                      {
-                        name: "model",
-                        rawName: "v-model",
-                        value: _vm.addChatId,
-                        expression: "addChatId"
-                      }
-                    ],
-                    staticClass: "form-control text-white bg-dark",
-                    attrs: { id: "groupAdd" },
-                    on: {
-                      change: function($event) {
-                        var $$selectedVal = Array.prototype.filter
-                          .call($event.target.options, function(o) {
-                            return o.selected
-                          })
-                          .map(function(o) {
-                            var val = "_value" in o ? o._value : o.value
-                            return val
-                          })
-                        _vm.addChatId = $event.target.multiple
-                          ? $$selectedVal
-                          : $$selectedVal[0]
-                      }
+            _c("div", { staticClass: "form-group" }, [
+              _c("label", { attrs: { for: "groupAdd" } }, [
+                _vm._v("Group Add")
+              ]),
+              _vm._v(" "),
+              _c(
+                "select",
+                {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model.number",
+                      value: _vm.addChatId,
+                      expression: "addChatId",
+                      modifiers: { number: true }
                     }
-                  },
-                  _vm._l(_vm.listChats, function(chat) {
-                    return _c(
-                      "option",
-                      { domProps: { value: chat.doc.chat.id } },
-                      [
-                        _c("p", { staticClass: "text-truncate mb-0" }, [
-                          _vm._v(_vm._s(chat.doc.chat.title))
-                        ])
-                      ]
-                    )
-                  }),
-                  0
-                )
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "form-group" }, [
-                _c("label", { attrs: { for: "groupExport" } }, [
-                  _vm._v("Group Export")
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "row" }, [
-                  _c("div", { staticClass: "col" }, [
-                    _c(
-                      "select",
-                      {
-                        directives: [
-                          {
-                            name: "model",
-                            rawName: "v-model",
-                            value: _vm.exportChatId,
-                            expression: "exportChatId"
-                          }
-                        ],
-                        staticClass: "form-control text-white bg-dark",
-                        attrs: { id: "groupExport" },
-                        on: {
-                          change: function($event) {
-                            var $$selectedVal = Array.prototype.filter
-                              .call($event.target.options, function(o) {
-                                return o.selected
-                              })
-                              .map(function(o) {
-                                var val = "_value" in o ? o._value : o.value
-                                return val
-                              })
-                            _vm.exportChatId = $event.target.multiple
-                              ? $$selectedVal
-                              : $$selectedVal[0]
-                          }
-                        }
-                      },
-                      _vm._l(_vm.listChats, function(chat) {
-                        return _c(
-                          "option",
-                          { domProps: { value: chat.doc.chat.id } },
-                          [
-                            _c("p", { staticClass: "text-truncate mb-0" }, [
-                              _vm._v(_vm._s(chat.doc.chat.title))
-                            ])
-                          ]
-                        )
-                      }),
-                      0
-                    )
-                  ]),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "col-4 pl-0" }, [
-                    _c(
-                      "button",
-                      {
-                        staticClass: "btn btn-primary px-2",
-                        on: { click: _vm.getUserMember }
-                      },
-                      [_vm._v("Get User")]
-                    )
-                  ])
-                ])
-              ]),
-              _vm._v(" "),
-              _c(
-                "div",
-                { staticClass: "form-group row align-content-center" },
-                [
-                  _c(
-                    "label",
-                    {
-                      staticClass: "col-form-label col pr-0",
-                      attrs: { for: "limitMember" }
-                    },
+                  ],
+                  staticClass: "form-control text-white bg-dark",
+                  attrs: { id: "groupAdd", disabled: _vm.isStarted },
+                  on: {
+                    change: function($event) {
+                      var $$selectedVal = Array.prototype.filter
+                        .call($event.target.options, function(o) {
+                          return o.selected
+                        })
+                        .map(function(o) {
+                          var val = "_value" in o ? o._value : o.value
+                          return _vm._n(val)
+                        })
+                      _vm.addChatId = $event.target.multiple
+                        ? $$selectedVal
+                        : $$selectedVal[0]
+                    }
+                  }
+                },
+                _vm._l(_vm.listChats, function(chat) {
+                  return _c(
+                    "option",
+                    { domProps: { value: chat.doc.chat.id } },
                     [
-                      _vm._v(
-                        "\n                                Limit Add\n                            "
-                      )
+                      _c("p", { staticClass: "text-truncate mb-0" }, [
+                        _vm._v(_vm._s(chat.doc.chat.title))
+                      ])
                     ]
-                  ),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "col-4" }, [
-                    _c("input", {
-                      directives: [
-                        {
-                          name: "model",
-                          rawName: "v-model",
-                          value: _vm.limitAddPerAcc,
-                          expression: "limitAddPerAcc"
-                        }
-                      ],
-                      staticClass: "form-control text-white bg-dark",
-                      attrs: {
-                        type: "number",
-                        id: "limitMember",
-                        value: "50",
-                        max: "200",
-                        min: "1"
-                      },
-                      domProps: { value: _vm.limitAddPerAcc },
-                      on: {
-                        input: function($event) {
-                          if ($event.target.composing) {
-                            return
-                          }
-                          _vm.limitAddPerAcc = $event.target.value
-                        }
+                  )
+                }),
+                0
+              )
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "form-group" }, [
+              _c("label", { attrs: { for: "groupExport" } }, [
+                _vm._v("Group Export")
+              ]),
+              _vm._v(" "),
+              _c(
+                "select",
+                {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model.number",
+                      value: _vm.exportGroupId,
+                      expression: "exportGroupId",
+                      modifiers: { number: true }
+                    }
+                  ],
+                  staticClass: "form-control text-white bg-dark",
+                  attrs: { id: "groupExport", disabled: _vm.isStarted },
+                  on: {
+                    change: function($event) {
+                      var $$selectedVal = Array.prototype.filter
+                        .call($event.target.options, function(o) {
+                          return o.selected
+                        })
+                        .map(function(o) {
+                          var val = "_value" in o ? o._value : o.value
+                          return _vm._n(val)
+                        })
+                      _vm.exportGroupId = $event.target.multiple
+                        ? $$selectedVal
+                        : $$selectedVal[0]
+                    }
+                  }
+                },
+                _vm._l(_vm.listChats, function(chat) {
+                  return _c(
+                    "option",
+                    { domProps: { value: chat.doc.chat.type.supergroup_id } },
+                    [
+                      _c("p", { staticClass: "text-truncate mb-0" }, [
+                        _vm._v(_vm._s(chat.doc.chat.title))
+                      ])
+                    ]
+                  )
+                }),
+                0
+              )
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "form-group row align-content-center" }, [
+              _c(
+                "label",
+                {
+                  staticClass: "col-form-label col pr-0",
+                  attrs: { for: "limitMember" }
+                },
+                [_vm._v("Limit Add")]
+              ),
+              _vm._v(" "),
+              _c("div", { staticClass: "col-4" }, [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model.number",
+                      value: _vm.limitAddPerAcc,
+                      expression: "limitAddPerAcc",
+                      modifiers: { number: true }
+                    }
+                  ],
+                  staticClass: "form-control text-white bg-dark",
+                  attrs: {
+                    type: "number",
+                    disabled: _vm.isStarted,
+                    id: "limitMember",
+                    value: "50",
+                    max: "200",
+                    min: "1"
+                  },
+                  domProps: { value: _vm.limitAddPerAcc },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
                       }
-                    })
-                  ])
+                      _vm.limitAddPerAcc = _vm._n($event.target.value)
+                    },
+                    blur: function($event) {
+                      return _vm.$forceUpdate()
+                    }
+                  }
+                })
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "form-group row align-content-center" }, [
+              _c(
+                "label",
+                {
+                  staticClass: "col-form-label col pr-0",
+                  attrs: { for: "delayInput" }
+                },
+                [_vm._v("Delay Add (seconds)")]
+              ),
+              _vm._v(" "),
+              _c("div", { staticClass: "col-4" }, [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model.number",
+                      value: _vm.delayTime,
+                      expression: "delayTime",
+                      modifiers: { number: true }
+                    }
+                  ],
+                  staticClass: "form-control text-white bg-dark",
+                  attrs: {
+                    type: "number",
+                    id: "delayInput",
+                    value: "1",
+                    max: "60",
+                    min: "1",
+                    disabled: _vm.isStarted
+                  },
+                  domProps: { value: _vm.delayTime },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.delayTime = _vm._n($event.target.value)
+                    },
+                    blur: function($event) {
+                      return _vm.$forceUpdate()
+                    }
+                  }
+                })
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "d-flex justify-content-between" }, [
+              _c(
+                "button",
+                {
+                  staticClass: "btn btn-primary",
+                  attrs: { disabled: _vm.isStarted },
+                  on: { click: _vm.startAddMember }
+                },
+                [
+                  _vm._v(
+                    "\n                            Start\n                        "
+                  )
                 ]
               ),
               _vm._v(" "),
               _c(
-                "div",
-                { staticClass: "form-group row align-content-center" },
+                "button",
+                {
+                  staticClass: "btn btn-info",
+                  attrs: { disabled: !_vm.isStarted },
+                  on: { click: _vm.stopAddMember }
+                },
                 [
-                  _c(
-                    "label",
-                    {
-                      staticClass: "col-form-label col pr-0",
-                      attrs: { for: "delayInput" }
-                    },
-                    [_vm._v("Delay Add (seconds)")]
-                  ),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "col-4" }, [
-                    _c("input", {
-                      directives: [
-                        {
-                          name: "model",
-                          rawName: "v-model",
-                          value: _vm.delayTime,
-                          expression: "delayTime"
-                        }
-                      ],
-                      staticClass: "form-control text-white bg-dark",
-                      attrs: {
-                        type: "number",
-                        id: "delayInput",
-                        value: "1",
-                        max: "60",
-                        min: "1"
-                      },
-                      domProps: { value: _vm.delayTime },
-                      on: {
-                        input: function($event) {
-                          if ($event.target.composing) {
-                            return
-                          }
-                          _vm.delayTime = $event.target.value
-                        }
-                      }
-                    })
-                  ])
+                  _vm._v(
+                    "\n                            Stop\n                        "
+                  )
                 ]
-              ),
-              _vm._v(" "),
-              _c("div", { staticClass: "d-flex justify-content-between" }, [
-                _c(
-                  "button",
-                  {
-                    staticClass: "btn btn-primary",
-                    attrs: { disabled: _vm.runState === "ready" }
-                  },
-                  [
-                    _vm._v(
-                      "\n                                Start\n                            "
-                    )
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "button",
-                  {
-                    staticClass: "btn btn-secondary",
-                    attrs: { disabled: _vm.runState === "running" }
-                  },
-                  [
-                    _vm._v(
-                      "\n                                Stop\n                            "
-                    )
-                  ]
-                )
-              ])
+              )
             ])
           ])
         ])
@@ -54316,13 +54494,105 @@ var render = function() {
       _vm._v(" "),
       _c("div", { staticClass: "col-5 tb-list" }, [
         _c("table", { staticClass: "table table-striped table-dark" }, [
-          _vm._m(2),
+          _c("thead", [
+            _c("tr", [
+              _c("th", { attrs: { scope: "col" } }, [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.allSelected,
+                      expression: "allSelected"
+                    }
+                  ],
+                  attrs: { type: "checkbox", disabled: _vm.isStarted },
+                  domProps: {
+                    checked: Array.isArray(_vm.allSelected)
+                      ? _vm._i(_vm.allSelected, null) > -1
+                      : _vm.allSelected
+                  },
+                  on: {
+                    input: _vm.selectAll,
+                    change: [
+                      function($event) {
+                        var $$a = _vm.allSelected,
+                          $$el = $event.target,
+                          $$c = $$el.checked ? true : false
+                        if (Array.isArray($$a)) {
+                          var $$v = null,
+                            $$i = _vm._i($$a, $$v)
+                          if ($$el.checked) {
+                            $$i < 0 && (_vm.allSelected = $$a.concat([$$v]))
+                          } else {
+                            $$i > -1 &&
+                              (_vm.allSelected = $$a
+                                .slice(0, $$i)
+                                .concat($$a.slice($$i + 1)))
+                          }
+                        } else {
+                          _vm.allSelected = $$c
+                        }
+                      },
+                      _vm.selectAll
+                    ]
+                  }
+                })
+              ]),
+              _vm._v(" "),
+              _c("th", { attrs: { scope: "col" } }, [_vm._v("Phone")]),
+              _vm._v(" "),
+              _c("th", { attrs: { scope: "col" } }, [_vm._v("Added")]),
+              _vm._v(" "),
+              _c("th", { attrs: { scope: "col" } }, [_vm._v("Status")])
+            ])
+          ]),
           _vm._v(" "),
           _c(
             "tbody",
-            _vm._l(_vm.listAccounts, function(account, index) {
+            _vm._l(_vm.listAccounts, function(account) {
               return _c("tr", [
-                _c("th", [_vm._v(_vm._s(index))]),
+                _c("th", [
+                  _c("input", {
+                    directives: [
+                      {
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.selectAccounts,
+                        expression: "selectAccounts"
+                      }
+                    ],
+                    attrs: { type: "checkbox", disabled: _vm.isStarted },
+                    domProps: {
+                      value: account,
+                      checked: Array.isArray(_vm.selectAccounts)
+                        ? _vm._i(_vm.selectAccounts, account) > -1
+                        : _vm.selectAccounts
+                    },
+                    on: {
+                      click: _vm.select,
+                      change: function($event) {
+                        var $$a = _vm.selectAccounts,
+                          $$el = $event.target,
+                          $$c = $$el.checked ? true : false
+                        if (Array.isArray($$a)) {
+                          var $$v = account,
+                            $$i = _vm._i($$a, $$v)
+                          if ($$el.checked) {
+                            $$i < 0 && (_vm.selectAccounts = $$a.concat([$$v]))
+                          } else {
+                            $$i > -1 &&
+                              (_vm.selectAccounts = $$a
+                                .slice(0, $$i)
+                                .concat($$a.slice($$i + 1)))
+                          }
+                        } else {
+                          _vm.selectAccounts = $$c
+                        }
+                      }
+                    }
+                  })
+                ]),
                 _vm._v(" "),
                 _c("td", [_vm._v("+" + _vm._s(account.doc.phone))]),
                 _vm._v(" "),
@@ -54350,11 +54620,11 @@ var render = function() {
       _vm._v(" "),
       _c("div", { staticClass: "col-4 tb-list" }, [
         _c("table", { staticClass: "table table-striped table-dark" }, [
-          _vm._m(3),
+          _vm._m(2),
           _vm._v(" "),
           _c(
             "tbody",
-            _vm._l(_vm.listUsers, function(user, index) {
+            _vm._l(_vm.listUserAdded, function(user, index) {
               return _c("tr", [
                 _c("th", [_vm._v(_vm._s(index))]),
                 _vm._v(" "),
@@ -54362,7 +54632,7 @@ var render = function() {
                 _vm._v(" "),
                 _c("td", [
                   _vm._v(
-                    _vm._s(user.hasOwnProperty("status") ? user.status : "-")
+                    _vm._s(user.hasOwnProperty("added") ? user.added : "-")
                   )
                 ])
               ])
@@ -54389,22 +54659,6 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("div", { staticClass: "card-header" }, [
       _c("h5", { staticClass: "card-title m-0" }, [_vm._v("Setup")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("thead", [
-      _c("tr", [
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("#")]),
-        _vm._v(" "),
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("Phone")]),
-        _vm._v(" "),
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("Added")]),
-        _vm._v(" "),
-        _c("th", { attrs: { scope: "col" } }, [_vm._v("Status")])
-      ])
     ])
   },
   function() {
@@ -55031,9 +55285,13 @@ var render = function() {
           _vm._v(" "),
           _vm._m(1)
         ])
-      : _vm.loginState === "login-code"
+      : _vm._e(),
+    _vm._v(" "),
+    _vm.loginState === "login-code"
       ? _c("div", { staticClass: "row login-code" }, [
           _c("div", { staticClass: "col-6" }, [
+            _c("label", [_vm._v("Confirmation code")]),
+            _vm._v(" "),
             _c("input", {
               directives: [
                 {
@@ -55066,7 +55324,9 @@ var render = function() {
             )
           ])
         ])
-      : _vm.loginState === "login-done"
+      : _vm._e(),
+    _vm._v(" "),
+    _vm.loginState === "login-done"
       ? _c("div", { staticClass: "row login-done" }, [
           _c("p", [_vm._v("Login success !")])
         ])
@@ -70446,6 +70706,7 @@ function TdWeb(account) {
   /**
    * Send phone login
    * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1set_authentication_phone_number.html
+   *
    * @param phone
    */
 
@@ -70463,6 +70724,7 @@ function TdWeb(account) {
   /**
    * Send code verify
    * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1check_authentication_code.html
+   *
    * @param code
    */
 
@@ -70480,6 +70742,7 @@ function TdWeb(account) {
   /**
    * Get current user
    * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_user.html
+   *
    * @param userId
    * @param callback
    */
@@ -70500,6 +70763,8 @@ function TdWeb(account) {
   };
   /**
    * get chats of current user
+   * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_chats.html
+   *
    * @param callback
    */
 
@@ -70519,6 +70784,14 @@ function TdWeb(account) {
       if (callback) callback(null, error);
     });
   };
+  /**
+   * Returns information about a chat by its identifier, this is an offline request if the current user is not a bot.
+   * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_chat.html
+   *
+   * @param chatId
+   * @param callback
+   */
+
 
   this.getChat = function (chatId) {
     var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
@@ -70534,19 +70807,42 @@ function TdWeb(account) {
     });
   };
   /**
+   * Returns information about a supergroup or channel by its identifier.
+   * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_supergroup.html
+   *
+   * @param supergroupId
+   * @param callback
+   */
+
+
+  this.getSupergroup = function (supergroupId) {
+    var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    this.client.send({
+      '@type': 'getSupergroup',
+      supergroup_id: supergroupId
+    }).then(function (result) {
+      console.log('TdWeb::class getSupergroup: success', result);
+      if (callback) callback(result, null);
+    })["catch"](function (error) {
+      console.error('TdWeb::class getSupergroup error', error);
+      if (callback) callback(null, error);
+    });
+  };
+  /**
    * Get group members
    * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_supergroup_members.html
-   * @param id
+   *
+   * @param groupId
    * @param offset
    * @param callback
    */
 
 
-  this.getGroupMembers = function (id, offset) {
+  this.getGroupMembers = function (groupId, offset) {
     var callback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
     this.client.send({
       '@type': 'getSupergroupMembers',
-      supergroup_id: id,
+      supergroup_id: groupId,
       offset: offset,
       limit: 200
     }).then(function (result) {
@@ -70560,6 +70856,7 @@ function TdWeb(account) {
   /**
    * Adds a new member to a chat
    * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1add_chat_member.html
+   *
    * @param chatId
    * @param userId
    * @param callback
@@ -70584,6 +70881,7 @@ function TdWeb(account) {
   /**
    * Adds multiple new members to a chat
    * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1add_chat_members.html
+   *
    * @param chatId
    * @param userIds array
    * @param callback function
@@ -70604,6 +70902,14 @@ function TdWeb(account) {
       if (callback) callback(null, error);
     });
   };
+  /**
+   * Adds current user as a new member to a chat.
+   * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1join_chat.html
+   *
+   * @param chatId
+   * @param callback
+   */
+
 
   this.joinChat = function (chatId) {
     var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
@@ -70618,6 +70924,14 @@ function TdWeb(account) {
       if (callback) callback(null, error);
     });
   };
+  /**
+   * Uses an invite link to add the current user to the chat if possible
+   * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1join_chat_by_invite_link.html
+   *
+   * @param inviteLink
+   * @param callback
+   */
+
 
   this.joinChatByInviteLink = function (inviteLink) {
     var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
@@ -70632,6 +70946,15 @@ function TdWeb(account) {
       if (callback) callback(null, error);
     });
   };
+  /**
+   * Returns information about a single member of a chat.
+   * @link https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1get_chat_member.html
+   *
+   * @param chat_id
+   * @param user_id
+   * @param callback
+   */
+
 
   this.getChatMember = function (chat_id, user_id) {
     var callback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
@@ -70804,6 +71127,46 @@ function createOrUpdateGroupChat(chat) {
   });
 }
 /* harmony default export */ __webpack_exports__["default"] = (db);
+
+/***/ }),
+
+/***/ "./resources/js/databases/UserAdded.js":
+/*!*********************************************!*\
+  !*** ./resources/js/databases/UserAdded.js ***!
+  \*********************************************/
+/*! exports provided: getUserAdded, isUserAdded, createUserAdded */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getUserAdded", function() { return getUserAdded; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isUserAdded", function() { return isUserAdded; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createUserAdded", function() { return createUserAdded; });
+/* harmony import */ var pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pouchdb-browser */ "./node_modules/pouchdb-browser/lib/index.es.js");
+/* harmony import */ var _models_UserAdded__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../models/UserAdded */ "./resources/js/models/UserAdded.js");
+
+
+var db = new pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__["default"]('telegram_chetmembers');
+function getUserAdded(exportGroupId, addChatId, userId, callback) {
+  var id = 'ua-' + exportGroupId + addChatId + userId;
+  db.get(id, function (err, doc) {
+    console.log('DB: getUserAdded:', err ? err : doc);
+    callback(err, doc);
+  });
+}
+function isUserAdded(exportGroupId, addChatId, userId, callback) {
+  var id = 'ua-' + exportGroupId + addChatId + userId;
+  db.get(id, function (err, doc) {
+    console.log('DB: isUserAdded:', err ? err : doc);
+    callback(!!doc);
+  });
+}
+function createUserAdded(exportGroupId, addChatId, userId) {
+  var userAdd = new _models_UserAdded__WEBPACK_IMPORTED_MODULE_1__["default"](exportGroupId, addChatId, userId);
+  db.put(userAdd, function (err, doc) {
+    console.log('DB: createUserAdded:', err ? err : doc);
+  });
+}
 
 /***/ }),
 
@@ -71017,6 +71380,25 @@ __webpack_require__.r(__webpack_exports__);
 function GroupChat(chat) {
   this._id = 'gc' + chat.id;
   this.chat = chat;
+}
+
+/***/ }),
+
+/***/ "./resources/js/models/UserAdded.js":
+/*!******************************************!*\
+  !*** ./resources/js/models/UserAdded.js ***!
+  \******************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UserAdded; });
+function UserAdded(exportGroupId, addChatId, userId) {
+  this._id = 'ua-' + exportGroupId + addChatId + userId;
+  this.exportGroupId = exportGroupId;
+  this.addChatId = addChatId;
+  this.userId = userId;
 }
 
 /***/ }),

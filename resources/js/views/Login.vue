@@ -37,14 +37,15 @@
             </div>
         </div>
 
-        <div v-else-if="loginState === 'login-code'" class="row login-code">
+        <div v-if="loginState === 'login-code'" class="row login-code">
             <div class="col-6">
+                <label>Confirmation code</label>
                 <input v-model="codeActive" type="text" class="input-group" placeholder="Code number..."/>
                 <button class="btn btn-primary mt-2" v-on:click="sendCode">Login</button>
             </div>
         </div>
 
-        <div v-else-if="loginState === 'login-done'" class="row login-done">
+        <div v-if="loginState === 'login-done'" class="row login-done">
             <p>Login success !</p>
         </div>
     </div>
