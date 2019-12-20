@@ -296,9 +296,7 @@
             selectAll : function ({ type, target }) {
                 this.selectAccounts = [];
                 if (target.checked) {
-                    for (let i = 0; i < this.listAccounts.length; i++) {
-                        this.selectAccounts.push(this.listAccounts[i]);
-                    }
+                    this.selectAccounts = this.listAccounts;
                 }
             },
             select () {

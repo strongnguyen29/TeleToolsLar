@@ -33,7 +33,7 @@
                     <tr v-for="(account, index) in  listAccounts">
                         <th>
                             <input type="checkbox"
-                                   :value="index" :id="'account_' + index"
+                                   :value="account" :id="'account_' + index"
                                    v-on:click="select"
                                    v-model="selectAccounts">
                         </th>
@@ -98,7 +98,7 @@
                 this.processing = true;
                 this.tdClient = null;
                 this.indexProcess = 0;
-                this.setTdClient(this.listAccounts[this.selectAccounts[this.indexProcess]].doc);
+                this.setTdClient(this.selectAccounts[this.indexProcess].doc);
             },
             setTdClient(account) {
                 console.log('setTdClient', account);
@@ -110,13 +110,14 @@
                                 case 'authorizationStateReady':
                                     _this.tdClient.joinChatByInviteLink(_this.inviteLink, function (result, err) {
 
-                                        let acc = _this.listAccounts[_this.selectAccounts[_this.indexProcess]];
+                                        let acc = _this.selectAccounts[_this.indexProcess];
+                                        let index = _this.listAccounts.indexOf(acc);
                                         acc.added = err ? 'Failed' : 'Success';
-                                        _this.listAccounts.splice(_this.selectAccounts[_this.indexProcess], 1, acc);
+                                        _this.listAccounts.splice(index, 1, acc);
 
                                         _this.indexProcess++;
                                         if (_this.indexProcess < _this.selectAccounts.length) {
-                                            _this.setTdClient(_this.listAccounts[_this.selectAccounts[_this.indexProcess]].doc);
+                                            _this.setTdClient(_this.selectAccounts[_this.indexProcess].doc);
                                         } else {
                                             _this.processing = false;
                                         }
@@ -131,9 +132,7 @@
                 console.log('selectAll', target.checked);
                 this.selectAccounts = [];
                 if (target.checked) {
-                    for (let i = 0; i < this.listAccounts.length; i++) {
-                        this.selectAccounts.push(i);
-                    }
+                    this.selectAccounts = this.listAccounts;
                 }
             },
             select () {

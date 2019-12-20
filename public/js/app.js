@@ -2357,9 +2357,7 @@ __webpack_require__.r(__webpack_exports__);
       this.selectAccounts = [];
 
       if (target.checked) {
-        for (var i = 0; i < this.listAccounts.length; i++) {
-          this.selectAccounts.push(this.listAccounts[i]);
-        }
+        this.selectAccounts = this.listAccounts;
       }
     },
     select: function select() {
@@ -2654,7 +2652,7 @@ __webpack_require__.r(__webpack_exports__);
       this.processing = true;
       this.tdClient = null;
       this.indexProcess = 0;
-      this.setTdClient(this.listAccounts[this.selectAccounts[this.indexProcess]].doc);
+      this.setTdClient(this.selectAccounts[this.indexProcess].doc);
     },
     setTdClient: function setTdClient(account) {
       console.log('setTdClient', account);
@@ -2668,15 +2666,18 @@ __webpack_require__.r(__webpack_exports__);
               switch (update.authorization_state['@type']) {
                 case 'authorizationStateReady':
                   _this.tdClient.joinChatByInviteLink(_this.inviteLink, function (result, err) {
-                    var acc = _this.listAccounts[_this.selectAccounts[_this.indexProcess]];
+                    var acc = _this.selectAccounts[_this.indexProcess];
+
+                    var index = _this.listAccounts.indexOf(acc);
+
                     acc.added = err ? 'Failed' : 'Success';
 
-                    _this.listAccounts.splice(_this.selectAccounts[_this.indexProcess], 1, acc);
+                    _this.listAccounts.splice(index, 1, acc);
 
                     _this.indexProcess++;
 
                     if (_this.indexProcess < _this.selectAccounts.length) {
-                      _this.setTdClient(_this.listAccounts[_this.selectAccounts[_this.indexProcess]].doc);
+                      _this.setTdClient(_this.selectAccounts[_this.indexProcess].doc);
                     } else {
                       _this.processing = false;
                     }
@@ -2695,9 +2696,7 @@ __webpack_require__.r(__webpack_exports__);
       this.selectAccounts = [];
 
       if (target.checked) {
-        for (var i = 0; i < this.listAccounts.length; i++) {
-          this.selectAccounts.push(i);
-        }
+        this.selectAccounts = this.listAccounts;
       }
     },
     select: function select() {
@@ -54808,7 +54807,9 @@ var render = function() {
                 {
                   staticClass: "nav-item",
                   class: [
-                    _vm.currentPage.includes("login") ? _vm.activeClass : ""
+                    _vm.currentPage.includes("account-login")
+                      ? _vm.activeClass
+                      : ""
                   ]
                 },
                 [
@@ -54818,7 +54819,7 @@ var render = function() {
                       staticClass: "nav-link",
                       attrs: { to: { name: "login" } }
                     },
-                    [_vm._v("Login")]
+                    [_vm._v("Login account")]
                   )
                 ],
                 1
@@ -55076,9 +55077,9 @@ var render = function() {
                     ],
                     attrs: { type: "checkbox", id: "account_" + index },
                     domProps: {
-                      value: index,
+                      value: account,
                       checked: Array.isArray(_vm.selectAccounts)
-                        ? _vm._i(_vm.selectAccounts, index) > -1
+                        ? _vm._i(_vm.selectAccounts, account) > -1
                         : _vm.selectAccounts
                     },
                     on: {
@@ -55088,7 +55089,7 @@ var render = function() {
                           $$el = $event.target,
                           $$c = $$el.checked ? true : false
                         if (Array.isArray($$a)) {
-                          var $$v = index,
+                          var $$v = account,
                             $$i = _vm._i($$a, $$v)
                           if ($$el.checked) {
                             $$i < 0 && (_vm.selectAccounts = $$a.concat([$$v]))
@@ -71168,7 +71169,9 @@ function getUsersAdded(exportGroupId, addChatId, callback) {
     console.log('DB: getUsersAdded:', err ? err : doc);
 
     if (err) {
-      createUsersAdded(exportGroupId, addChatId, [], callback);
+      createUsersAdded(exportGroupId, addChatId, [], function (err, doc) {
+        getUsersAdded(exportGroupId, addChatId, callback);
+      });
     } else {
       callback(err, doc);
     }
@@ -71455,7 +71458,7 @@ var router = new vue_router__WEBPACK_IMPORTED_MODULE_1__["default"]({
     name: 'home',
     component: _js_views_Home__WEBPACK_IMPORTED_MODULE_2__["default"]
   }, {
-    path: '/login',
+    path: '/account-login',
     name: 'login',
     component: _js_views_Login__WEBPACK_IMPORTED_MODULE_3__["default"]
   }, {
