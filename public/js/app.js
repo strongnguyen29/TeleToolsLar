@@ -2144,7 +2144,8 @@ __webpack_require__.r(__webpack_exports__);
       listAccounts: [],
       selectAccounts: [],
       listUsers: [],
-      listUserAdded: [],
+      resultUsersAdded: [],
+      listUsersAdded: [],
       listChats: [],
       addChatId: null,
       exportGroupId: null,
@@ -2197,7 +2198,14 @@ __webpack_require__.r(__webpack_exports__);
 
       console.log('START ADD MEMBER ==============================');
       this.isStarted = true;
-      this.setTdClient(this.selectAccounts[this.offsetAccount].doc);
+
+      var _this = this;
+
+      Object(_databases_UserAdded__WEBPACK_IMPORTED_MODULE_2__["getUsersAdded"])(this.exportGroupId, this.addChatId, function (err, doc) {
+        _this.listUsersAdded = doc;
+
+        _this.setTdClient(_this.selectAccounts[_this.offsetAccount].doc);
+      });
     },
     stopAddMember: function stopAddMember() {
       console.log('stopAddMember');
@@ -2275,49 +2283,48 @@ __webpack_require__.r(__webpack_exports__);
 
       var _this = this;
 
-      Object(_databases_UserAdded__WEBPACK_IMPORTED_MODULE_2__["isUserAdded"])(_this.exportGroupId, _this.addChatId, userId, function (isAdded) {
-        if (isAdded) {
+      if (this.isUserAdded(userId)) {
+        _this.offsetAddUser++;
+
+        if (_this.offsetAddUser < _this.listUsers.length) {
+          _this.addMember(_this.listUsers[_this.offsetAddUser]);
+        }
+      } else {
+        _this.tdClient.addChatMember(_this.addChatId, userId, function (result, err) {
           _this.offsetAddUser++;
+          _this.offsetPerAcc++;
+          _this.totalAdded++;
+
+          if (result) {
+            _this.addSuccess++;
+            _this.accAdded++;
+          } else {
+            _this.addFailed++;
+          }
+
+          _this.resultUsersAdded.push({
+            user_id: userId,
+            added: result != null
+          }); // Save to database
+
+
+          _this.listUsersAdded.userIds.push(userId);
+
+          if (!_this.isStarted) return;
+
+          if (_this.offsetPerAcc > _this.limitAddPerAcc || err && (err.message === 'PEER_FLOOD' || err.message === 'FLOOD_WAIT')) {
+            _this.nextAccount();
+
+            return;
+          }
 
           if (_this.offsetAddUser < _this.listUsers.length) {
+            _this.sleep(_this.delayTime);
+
             _this.addMember(_this.listUsers[_this.offsetAddUser]);
           }
-        } else {
-          _this.tdClient.addChatMember(_this.addChatId, userId, function (result, err) {
-            _this.offsetAddUser++;
-            _this.offsetPerAcc++;
-            _this.totalAdded++;
-
-            if (result) {
-              _this.addSuccess++;
-              _this.accAdded++;
-            } else {
-              _this.addFailed++;
-            }
-
-            _this.listUserAdded.push({
-              user_id: userId,
-              added: result != null
-            }); // Save to database
-
-
-            Object(_databases_UserAdded__WEBPACK_IMPORTED_MODULE_2__["createUserAdded"])(_this.exportGroupId, _this.addChatId, userId);
-            if (!_this.isStarted) return;
-
-            if (_this.offsetPerAcc > _this.limitAddPerAcc || err && (err.message === 'PEER_FLOOD' || err.message === 'FLOOD_WAIT')) {
-              _this.nextAccount();
-
-              return;
-            }
-
-            if (_this.offsetAddUser < _this.listUsers.length) {
-              _this.sleep(_this.delayTime);
-
-              _this.addMember(_this.listUsers[_this.offsetAddUser]);
-            }
-          });
-        }
-      });
+        });
+      }
     },
     nextAccount: function nextAccount() {
       // Run next account;
@@ -2339,7 +2346,9 @@ __webpack_require__.r(__webpack_exports__);
         this.setTdClient(this.selectAccounts[this.offsetAccount].doc);
       } else {
         console.log('ADD MEMBER DONE =========================================');
-        this.isStarted = false;
+        this.isStarted = false; // update user added to db;
+
+        Object(_databases_UserAdded__WEBPACK_IMPORTED_MODULE_2__["updateUsersAdded"])(this.listUsersAdded);
       }
     },
     selectAll: function selectAll(_ref) {
@@ -2355,6 +2364,12 @@ __webpack_require__.r(__webpack_exports__);
     },
     select: function select() {
       this.allSelected = false;
+    },
+    isUserAdded: function isUserAdded(userId) {
+      var result = this.listUsersAdded.userIds.find(function (element) {
+        return element === userId;
+      });
+      return result !== undefined;
     },
     sleep: function sleep(s) {
       var date = Date.now();
@@ -54624,7 +54639,7 @@ var render = function() {
           _vm._v(" "),
           _c(
             "tbody",
-            _vm._l(_vm.listUserAdded, function(user, index) {
+            _vm._l(_vm.resultUsersAdded, function(user, index) {
               return _c("tr", [
                 _c("th", [_vm._v(_vm._s(index))]),
                 _vm._v(" "),
@@ -71134,37 +71149,41 @@ function createOrUpdateGroupChat(chat) {
 /*!*********************************************!*\
   !*** ./resources/js/databases/UserAdded.js ***!
   \*********************************************/
-/*! exports provided: getUserAdded, isUserAdded, createUserAdded */
+/*! exports provided: getUsersAdded, createUsersAdded, updateUsersAdded */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getUserAdded", function() { return getUserAdded; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isUserAdded", function() { return isUserAdded; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createUserAdded", function() { return createUserAdded; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getUsersAdded", function() { return getUsersAdded; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createUsersAdded", function() { return createUsersAdded; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "updateUsersAdded", function() { return updateUsersAdded; });
 /* harmony import */ var pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pouchdb-browser */ "./node_modules/pouchdb-browser/lib/index.es.js");
 /* harmony import */ var _models_UserAdded__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../models/UserAdded */ "./resources/js/models/UserAdded.js");
 
 
 var db = new pouchdb_browser__WEBPACK_IMPORTED_MODULE_0__["default"]('telegram_chetmembers');
-function getUserAdded(exportGroupId, addChatId, userId, callback) {
-  var id = 'ua-' + exportGroupId + addChatId + userId;
+function getUsersAdded(exportGroupId, addChatId, callback) {
+  var id = 'ua-' + exportGroupId + addChatId;
   db.get(id, function (err, doc) {
-    console.log('DB: getUserAdded:', err ? err : doc);
+    console.log('DB: getUsersAdded:', err ? err : doc);
+
+    if (err) {
+      createUsersAdded(exportGroupId, addChatId, [], callback);
+    } else {
+      callback(err, doc);
+    }
+  });
+}
+function createUsersAdded(exportGroupId, addChatId, userIds, callback) {
+  var userAdded = new _models_UserAdded__WEBPACK_IMPORTED_MODULE_1__["default"](exportGroupId, addChatId, userIds);
+  db.put(userAdded, function (err, doc) {
+    console.log('DB: createUsersAdded:', err ? err : doc);
     callback(err, doc);
   });
 }
-function isUserAdded(exportGroupId, addChatId, userId, callback) {
-  var id = 'ua-' + exportGroupId + addChatId + userId;
-  db.get(id, function (err, doc) {
-    console.log('DB: isUserAdded:', err ? err : doc);
-    callback(!!doc);
-  });
-}
-function createUserAdded(exportGroupId, addChatId, userId) {
-  var userAdd = new _models_UserAdded__WEBPACK_IMPORTED_MODULE_1__["default"](exportGroupId, addChatId, userId);
-  db.put(userAdd, function (err, doc) {
-    console.log('DB: createUserAdded:', err ? err : doc);
+function updateUsersAdded(userAdded) {
+  db.put(userAdded, function (err, doc) {
+    console.log('DB: updateUsersAdded:', err ? err : doc);
   });
 }
 
@@ -71394,11 +71413,12 @@ function GroupChat(chat) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UserAdded; });
-function UserAdded(exportGroupId, addChatId, userId) {
-  this._id = 'ua-' + exportGroupId + addChatId + userId;
+function UserAdded(exportGroupId, addChatId) {
+  var userIds = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+  this._id = 'ua-' + exportGroupId + addChatId;
   this.exportGroupId = exportGroupId;
   this.addChatId = addChatId;
-  this.userId = userId;
+  this.userIds = userIds;
 }
 
 /***/ }),

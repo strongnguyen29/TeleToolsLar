@@ -1,7 +1,7 @@
 
-export default function UserAdded(exportGroupId, addChatId, userId) {
-    this._id = 'ua-' + exportGroupId + addChatId + userId;
+export default function UserAdded(exportGroupId, addChatId, userIds = []) {
+    this._id = 'ua-' + exportGroupId + addChatId;
     this.exportGroupId = exportGroupId;
     this.addChatId = addChatId;
-    this.userId = userId;
+    this.userIds = userIds;
 }

@@ -93,7 +93,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr v-for="(user, index) in listUserAdded">
+                    <tr v-for="(user, index) in resultUsersAdded">
                         <th>{{ index }}</th>
                         <td>{{ user.user_id }}</td>
                         <td>{{ user.hasOwnProperty('added') ? user.added : '-' }}</td>
@@ -108,7 +108,7 @@
 <script>
     import {getAccounts} from "../databases/Account";
     import {getGroupChats} from "../databases/GroupChat";
-    import {isUserAdded, createUserAdded} from "../databases/UserAdded"
+    import {getUsersAdded, updateUsersAdded} from "../databases/UserAdded"
     import TdClient from '~/js/TdWeb'
 
     export default {
@@ -119,7 +119,8 @@
                 listAccounts: [],
                 selectAccounts: [],
                 listUsers: [],
-                listUserAdded: [],
+                resultUsersAdded: [],
+                listUsersAdded: [],
                 listChats: [],
                 addChatId: null,
                 exportGroupId: null,
@@ -168,7 +169,11 @@
 
                 console.log('START ADD MEMBER ==============================');
                 this.isStarted = true;
-                this.setTdClient(this.selectAccounts[this.offsetAccount].doc);
+                const _this = this;
+                getUsersAdded(this.exportGroupId, this.addChatId, function (err, doc) {
+                    _this.listUsersAdded = doc;
+                    _this.setTdClient(_this.selectAccounts[_this.offsetAccount].doc);
+                });
             },
             stopAddMember() {
                 console.log('stopAddMember');
@@ -231,42 +236,40 @@
             addMember(userId) {
                 console.log('++++ addMember:: offsetAddUser = ' + this.offsetAddUser);
                 const _this = this;
-                isUserAdded(_this.exportGroupId, _this.addChatId, userId, function (isAdded) {
-                   if (isAdded) {
-                       _this.offsetAddUser++;
-                       if (_this.offsetAddUser < _this.listUsers.length) {
-                           _this.addMember(_this.listUsers[_this.offsetAddUser]);
-                       }
-                   } else {
-                       _this.tdClient.addChatMember(_this.addChatId, userId, function (result, err) {
-                           _this.offsetAddUser++;
-                           _this.offsetPerAcc++;
-                           _this.totalAdded++;
-                           if (result) {
-                               _this.addSuccess++;
-                               _this.accAdded++;
-                           } else {
-                               _this.addFailed++;
-                           }
-                           _this.listUserAdded.push({user_id: userId, added: result != null});
+                if (this.isUserAdded(userId)) {
+                    _this.offsetAddUser++;
+                    if (_this.offsetAddUser < _this.listUsers.length) {
+                        _this.addMember(_this.listUsers[_this.offsetAddUser]);
+                    }
+                } else {
+                    _this.tdClient.addChatMember(_this.addChatId, userId, function (result, err) {
+                        _this.offsetAddUser++;
+                        _this.offsetPerAcc++;
+                        _this.totalAdded++;
+                        if (result) {
+                            _this.addSuccess++;
+                            _this.accAdded++;
+                        } else {
+                            _this.addFailed++;
+                        }
+                        _this.resultUsersAdded.push({user_id: userId, added: result != null});
 
-                           // Save to database
-                           createUserAdded(_this.exportGroupId, _this.addChatId, userId);
+                        // Save to database
+                        _this.listUsersAdded.userIds.push(userId);
 
-                           if ( !_this.isStarted) return;
+                        if ( !_this.isStarted) return;
 
-                           if (_this.offsetPerAcc > _this.limitAddPerAcc || (err && (err.message === 'PEER_FLOOD' || err.message === 'FLOOD_WAIT'))) {
-                               _this.nextAccount();
-                               return;
-                           }
+                        if (_this.offsetPerAcc > _this.limitAddPerAcc || (err && (err.message === 'PEER_FLOOD' || err.message === 'FLOOD_WAIT'))) {
+                            _this.nextAccount();
+                            return;
+                        }
 
-                           if (_this.offsetAddUser < _this.listUsers.length) {
-                               _this.sleep(_this.delayTime);
-                               _this.addMember(_this.listUsers[_this.offsetAddUser]);
-                           }
-                       })
-                   }
-                });
+                        if (_this.offsetAddUser < _this.listUsers.length) {
+                            _this.sleep(_this.delayTime);
+                            _this.addMember(_this.listUsers[_this.offsetAddUser]);
+                        }
+                    })
+                }
             },
             nextAccount() {
                 // Run next account;
@@ -286,6 +289,8 @@
                 } else {
                     console.log('ADD MEMBER DONE =========================================');
                     this.isStarted = false;
+                    // update user added to db;
+                    updateUsersAdded(this.listUsersAdded);
                 }
             },
             selectAll : function ({ type, target }) {
@@ -298,6 +303,10 @@
             },
             select () {
                 this.allSelected = false;
+            },
+            isUserAdded(userId) {
+                const result = this.listUsersAdded.userIds.find(element => element === userId);
+                return result !== undefined;
             },
             sleep(s) {
                 const date = Date.now();
