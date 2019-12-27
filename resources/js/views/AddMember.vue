@@ -158,6 +158,11 @@
             getGroupChats(function (err, docs) {
                 if (docs) {
                     _this.listChats = docs.rows;
+                    _this.listChats.sort(function(a,b) {
+                        let x = a.doc.chat.title.toLowerCase();
+                        let y = b.doc.chat.title.toLowerCase();
+                        return x.localeCompare(y);
+                    });
                 }
             });
         },

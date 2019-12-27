@@ -2185,6 +2185,12 @@ __webpack_require__.r(__webpack_exports__);
     Object(_databases_GroupChat__WEBPACK_IMPORTED_MODULE_1__["getGroupChats"])(function (err, docs) {
       if (docs) {
         _this.listChats = docs.rows;
+
+        _this.listChats.sort(function (a, b) {
+          var x = a.doc.chat.title.toLowerCase();
+          var y = b.doc.chat.title.toLowerCase();
+          return x.localeCompare(y);
+        });
       }
     });
   },
