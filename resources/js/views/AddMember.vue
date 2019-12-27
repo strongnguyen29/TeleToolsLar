@@ -34,6 +34,14 @@
                             </select>
                         </div>
                         <div class="form-group row align-content-center">
+                            <label for="limitGetUsers" class="col-form-label col pr-0">Limit export member <small>(-1: export all)</small></label>
+                            <div class="col-4">
+                                <input type="number" class="form-control text-white bg-dark"
+                                       v-model.number="limitGetUsers" :disabled="isStarted"
+                                       id="limitGetUsers" value="-1">
+                            </div>
+                        </div>
+                        <div class="form-group row align-content-center">
                             <label for="limitMember" class="col-form-label col pr-0">Limit Add</label>
                             <div class="col-4">
                                 <input type="number" class="form-control text-white bg-dark"
@@ -135,6 +143,7 @@
                 addSuccess: 0,
                 addFailed: 0,
                 accAdded: 0,
+                limitGetUsers: -1,
                 isStarted: false
             }
         },
@@ -215,13 +224,17 @@
             getGroupMembers() {
                 console.log('++++ getGroupMembers offsetGetUser = ' + this.offsetGetUser);
                 const _this = this;
-                this.tdClient.getGroupMembers(this.exportGroupId, this.offsetGetUser, function (result, err) {
+                let limitGet = _this.limitGetUsers > 0 && _this.limitGetUsers < 200 ? _this.limitGetUsers : 200;
+                this.tdClient.getGroupMembers(this.exportGroupId, this.offsetGetUser, limitGet, function (result, err) {
                     if (result) {
                         for (let i = 0; i < result.members.length; i++) {
                             _this.listUsers.push(result.members[i].user_id)
                         }
                         _this.offsetGetUser += 200;
-                        if (_this.offsetGetUser < result.total_count) {
+
+                        let limit = _this.limitGetUsers < 1 || _this.limitGetUsers > result.total_count ? result.total_count : _this.limitGetUsers;
+
+                        if (_this.offsetGetUser < limit) {
                             _this.getGroupMembers();
                         } else {
                             _this.listUsers.sort();

@@ -197,15 +197,16 @@ export default function TdWeb(account, closers = null) {
      *
      * @param groupId
      * @param offset
+     * @param limit
      * @param callback
      */
-    this.getGroupMembers = function (groupId, offset, callback = null) {
+    this.getGroupMembers = function (groupId, offset, limit = 200, callback = null) {
 
         this.client.send({
             '@type': 'getSupergroupMembers',
             supergroup_id: groupId,
             offset: offset,
-            limit:200
+            limit:limit
         }).then(result => {
             console.log('TdWeb::class getGroupMembers: success', result);
             if (callback) callback(result, null);

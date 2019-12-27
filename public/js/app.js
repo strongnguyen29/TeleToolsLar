@@ -2132,6 +2132,14 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -2161,6 +2169,7 @@ __webpack_require__.r(__webpack_exports__);
       addSuccess: 0,
       addFailed: 0,
       accAdded: 0,
+      limitGetUsers: -1,
       isStarted: false
     };
   },
@@ -2256,15 +2265,17 @@ __webpack_require__.r(__webpack_exports__);
 
       var _this = this;
 
-      this.tdClient.getGroupMembers(this.exportGroupId, this.offsetGetUser, function (result, err) {
+      var limitGet = _this.limitGetUsers > 0 && _this.limitGetUsers < 200 ? _this.limitGetUsers : 200;
+      this.tdClient.getGroupMembers(this.exportGroupId, this.offsetGetUser, limitGet, function (result, err) {
         if (result) {
           for (var i = 0; i < result.members.length; i++) {
             _this.listUsers.push(result.members[i].user_id);
           }
 
           _this.offsetGetUser += 200;
+          var limit = _this.limitGetUsers < 1 || _this.limitGetUsers > result.total_count ? result.total_count : _this.limitGetUsers;
 
-          if (_this.offsetGetUser < result.total_count) {
+          if (_this.offsetGetUser < limit) {
             _this.getGroupMembers();
           } else {
             _this.listUsers.sort();
@@ -54382,6 +54393,43 @@ var render = function() {
             ]),
             _vm._v(" "),
             _c("div", { staticClass: "form-group row align-content-center" }, [
+              _vm._m(2),
+              _vm._v(" "),
+              _c("div", { staticClass: "col-4" }, [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model.number",
+                      value: _vm.limitGetUsers,
+                      expression: "limitGetUsers",
+                      modifiers: { number: true }
+                    }
+                  ],
+                  staticClass: "form-control text-white bg-dark",
+                  attrs: {
+                    type: "number",
+                    disabled: _vm.isStarted,
+                    id: "limitGetUsers",
+                    value: "-1"
+                  },
+                  domProps: { value: _vm.limitGetUsers },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.limitGetUsers = _vm._n($event.target.value)
+                    },
+                    blur: function($event) {
+                      return _vm.$forceUpdate()
+                    }
+                  }
+                })
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "form-group row align-content-center" }, [
               _c(
                 "label",
                 {
@@ -54634,7 +54682,7 @@ var render = function() {
       _vm._v(" "),
       _c("div", { staticClass: "col-4 tb-list" }, [
         _c("table", { staticClass: "table table-striped table-dark" }, [
-          _vm._m(2),
+          _vm._m(3),
           _vm._v(" "),
           _c(
             "tbody",
@@ -54674,6 +54722,22 @@ var staticRenderFns = [
     return _c("div", { staticClass: "card-header" }, [
       _c("h5", { staticClass: "card-title m-0" }, [_vm._v("Setup")])
     ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "label",
+      {
+        staticClass: "col-form-label col pr-0",
+        attrs: { for: "limitGetUsers" }
+      },
+      [
+        _vm._v("Limit export member "),
+        _c("small", [_vm._v("(-1: export all)")])
+      ]
+    )
   },
   function() {
     var _vm = this
@@ -70850,17 +70914,19 @@ function TdWeb(account) {
    *
    * @param groupId
    * @param offset
+   * @param limit
    * @param callback
    */
 
 
   this.getGroupMembers = function (groupId, offset) {
-    var callback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+    var limit = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 200;
+    var callback = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
     this.client.send({
       '@type': 'getSupergroupMembers',
       supergroup_id: groupId,
       offset: offset,
-      limit: 200
+      limit: limit
     }).then(function (result) {
       console.log('TdWeb::class getGroupMembers: success', result);
       if (callback) callback(result, null);
