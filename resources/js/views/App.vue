@@ -35,6 +35,7 @@
             }
         },
         computed: {
+
             currentPage() {
                 console.log('$route.path: ', this.$route.path);
                 return this.$route.path;

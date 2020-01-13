@@ -39,7 +39,11 @@
                             <tbody>
                             <tr v-for="(chat, index) in listChats">
                                 <td>{{ chat.id}}</td>
-                                <td>{{ chat.title}}</td>
+                                <td>{{ chat.title}}
+                                    <span class="badge" :class="isPublicGroup(chat) ? 'badge-primary' : 'badge-light'">
+                                        {{ isPublicGroup(chat) ? 'Public group' : 'Channel' }}
+                                    </span>
+                                </td>
                                 <td>{{ chat.type.supergroup_id}}</td>
                             </tr>
                             </tbody>
@@ -110,10 +114,14 @@
                 const _this = this;
                 tdClient.getChat(chatId, function (result, error) {
                     if (result) {
+                        _this.listChats.push(result);
+                        createOrUpdateGroupChat(new GroupChat(result));
+                        /*
                         if (isPublicGroup(result)) {
                             _this.listChats.push(result);
-                            createOrUpdateGroupChat(new GroupChat(result))
+                            createOrUpdateGroupChat(new GroupChat(result));
                         }
+                        */
                     }
                 });
             },
@@ -126,6 +134,9 @@
                     this.account = account;
                     this.setTdClient();
                 }
+            },
+            isPublicGroup(chat) {
+                return isPublicGroup(chat);
             }
         }
     }

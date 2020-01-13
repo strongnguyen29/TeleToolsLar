@@ -20,7 +20,10 @@
                             <select class="form-control text-white bg-dark" id="groupAdd"
                                     v-model.number="addChatId" :disabled="isStarted">
                                 <option v-for="chat in listChats" :value="chat.doc.chat.id">
-                                    <p class="text-truncate mb-0">{{ chat.doc.chat.title }}</p>
+                                    <p class="text-truncate mb-0">
+                                        [{{ isPublicGroup(chat.doc.chat) ? 'Group' : 'Channel' }}]
+                                        {{ chat.doc.chat.title }}
+                                    </p>
                                 </option>
                             </select>
                         </div>
@@ -29,7 +32,10 @@
                             <select class="form-control text-white bg-dark" id="groupExport"
                                     v-model.number="exportGroupId" :disabled="isStarted">
                                 <option v-for="chat in listChats" :value="chat.doc.chat.type.supergroup_id">
-                                    <p class="text-truncate mb-0">{{ chat.doc.chat.title }}</p>
+                                    <p class="text-truncate mb-0">
+                                        [{{ isPublicGroup(chat.doc.chat) ? 'Group' : 'Channel' }}]
+                                        {{ chat.doc.chat.title }}
+                                    </p>
                                 </option>
                             </select>
                         </div>
@@ -118,6 +124,7 @@
     import {getGroupChats} from "../databases/GroupChat";
     import {getUsersAdded, updateUsersAdded} from "../databases/UserAdded"
     import TdClient from '~/js/TdWeb'
+    import {isPublicGroup} from "../helpers/common";
 
     export default {
         name: "AddMember",
@@ -330,6 +337,9 @@
                 do {
                     currentDate = Date.now();
                 } while (currentDate - date < s * 1000);
+            },
+            isPublicGroup(chat) {
+                return isPublicGroup(chat);
             }
         }
     }

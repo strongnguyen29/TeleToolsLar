@@ -1926,6 +1926,10 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
 
 
 
@@ -1989,11 +1993,15 @@ var tdClient;
 
       tdClient.getChat(chatId, function (result, error) {
         if (result) {
-          if (Object(_helpers_common__WEBPACK_IMPORTED_MODULE_0__["isPublicGroup"])(result)) {
-            _this.listChats.push(result);
+          _this.listChats.push(result);
 
-            Object(_databases_GroupChat__WEBPACK_IMPORTED_MODULE_2__["createOrUpdateGroupChat"])(new _models_GroupChat__WEBPACK_IMPORTED_MODULE_4__["default"](result));
+          Object(_databases_GroupChat__WEBPACK_IMPORTED_MODULE_2__["createOrUpdateGroupChat"])(new _models_GroupChat__WEBPACK_IMPORTED_MODULE_4__["default"](result));
+          /*
+          if (isPublicGroup(result)) {
+              _this.listChats.push(result);
+              createOrUpdateGroupChat(new GroupChat(result));
           }
+          */
         }
       });
     },
@@ -2006,6 +2014,9 @@ var tdClient;
         this.account = account;
         this.setTdClient();
       }
+    },
+    isPublicGroup: function isPublicGroup(chat) {
+      return Object(_helpers_common__WEBPACK_IMPORTED_MODULE_0__["isPublicGroup"])(chat);
     }
   }
 });
@@ -2025,6 +2036,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _databases_GroupChat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../databases/GroupChat */ "./resources/js/databases/GroupChat.js");
 /* harmony import */ var _databases_UserAdded__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../databases/UserAdded */ "./resources/js/databases/UserAdded.js");
 /* harmony import */ var _js_TdWeb__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ~/js/TdWeb */ "./resources/js/TdWeb.js");
+/* harmony import */ var _helpers_common__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../helpers/common */ "./resources/js/helpers/common.js");
 //
 //
 //
@@ -2140,6 +2152,13 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+
 
 
 
@@ -2393,6 +2412,9 @@ __webpack_require__.r(__webpack_exports__);
       do {
         currentDate = Date.now();
       } while (currentDate - date < s * 1000);
+    },
+    isPublicGroup: function isPublicGroup(chat) {
+      return Object(_helpers_common__WEBPACK_IMPORTED_MODULE_4__["isPublicGroup"])(chat);
     }
   }
 });
@@ -54196,7 +54218,32 @@ var render = function() {
                       return _c("tr", [
                         _c("td", [_vm._v(_vm._s(chat.id))]),
                         _vm._v(" "),
-                        _c("td", [_vm._v(_vm._s(chat.title))]),
+                        _c("td", [
+                          _vm._v(
+                            _vm._s(chat.title) +
+                              "\n                                "
+                          ),
+                          _c(
+                            "span",
+                            {
+                              staticClass: "badge",
+                              class: _vm.isPublicGroup(chat)
+                                ? "badge-primary"
+                                : "badge-light"
+                            },
+                            [
+                              _vm._v(
+                                "\n                                    " +
+                                  _vm._s(
+                                    _vm.isPublicGroup(chat)
+                                      ? "Public group"
+                                      : "Channel"
+                                  ) +
+                                  "\n                                "
+                              )
+                            ]
+                          )
+                        ]),
                         _vm._v(" "),
                         _c("td", [_vm._v(_vm._s(chat.type.supergroup_id))])
                       ])
@@ -54339,7 +54386,17 @@ var render = function() {
                     { domProps: { value: chat.doc.chat.id } },
                     [
                       _c("p", { staticClass: "text-truncate mb-0" }, [
-                        _vm._v(_vm._s(chat.doc.chat.title))
+                        _vm._v(
+                          "\n                                    [" +
+                            _vm._s(
+                              _vm.isPublicGroup(chat.doc.chat)
+                                ? "Group"
+                                : "Channel"
+                            ) +
+                            "]\n                                    " +
+                            _vm._s(chat.doc.chat.title) +
+                            "\n                                "
+                        )
                       ])
                     ]
                   )
@@ -54389,7 +54446,17 @@ var render = function() {
                     { domProps: { value: chat.doc.chat.type.supergroup_id } },
                     [
                       _c("p", { staticClass: "text-truncate mb-0" }, [
-                        _vm._v(_vm._s(chat.doc.chat.title))
+                        _vm._v(
+                          "\n                                    [" +
+                            _vm._s(
+                              _vm.isPublicGroup(chat.doc.chat)
+                                ? "Group"
+                                : "Channel"
+                            ) +
+                            "]\n                                    " +
+                            _vm._s(chat.doc.chat.title) +
+                            "\n                                "
+                        )
                       ])
                     ]
                   )
